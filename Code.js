@@ -148,9 +148,6 @@ const BOT_TOKEN = "8134250354:AAFCjt7PIVfCEBvKDOmT3mPZL_Ryn7-xIHE";
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
-function getLoginHTML() {
-  return HtmlService.createHtmlOutputFromFile('login').getContent();
-}
 
 
 function touchUpdatedAt(sheet, rowIndex) {
@@ -159,41 +156,6 @@ function touchUpdatedAt(sheet, rowIndex) {
     sheet.getRange(rowIndex, col + 1).setValue(new Date());
   }
 }
-
-function loginCheck(username, password) {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('login');
-    if (!sheet) {
-      return { success: false, message: '❌ ไม่พบชีตชื่อ "login"' };
-    }
-
-    const data = sheet.getDataRange().getValues();
-    data.shift(); // ตัดหัวตารางออก
-
-    for (let i = 0; i < data.length; i++) {
-      const [id, name, user, pass, role, startDatetime] = data[i];
-      const cleanPass = String(pass).trim();
-
-      if (user === username && cleanPass === password) {
-        const now = new Date();
-        sheet.getRange(i + 2, 6).setValue(now);
-        return {
-          success: true,
-          name,
-          role: role || 'user',
-          loginTime: now.toISOString()
-        };
-      }
-    }
-
-    return { success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' };
-  } catch (err) {
-    console.error(err);
-    return { success: false, message: 'เกิดข้อผิดพลาดในระบบ' };
-  }
-}
-
 
       function getUserRoleByUsername_(username) {
       if (!username) return "";
@@ -261,34 +223,6 @@ function loginCheck(username, password) {
     }
 
 // ✅ สมัครสมาชิกใหม่
-function registerUser(name, username, password) {
-  try {
-    const ss = getSpreadsheet();
-    const sheet = ss.getSheetByName('login');
-    if (!sheet) {
-      return { success: false, message: '❌ ไม่พบชีตชื่อ "login"' };
-    }
-
-    if (!name || !username || !password) {
-      return { success: false, message: '⚠️ ข้อมูลไม่ครบ' };
-    }
-
-    const data = sheet.getDataRange().getValues();
-    const usernameExists = data.some(row => row[2] === username);
-    if (usernameExists) {
-      return { success: false, message: '❌ ชื่อผู้ใช้นี้มีอยู่แล้ว' };
-    }
-
-    const newId = sheet.getLastRow();
-    const role = "user";
-    const now = new Date();
-    sheet.appendRow([newId, name, username, password, role, now]);
-    return { success: true, message: '✅ ลงทะเบียนสำเร็จ' };
-  } catch (err) {
-    console.error(err);
-    return { success: false, message: 'เกิดข้อผิดพลาดระหว่างการสมัครสมาชิก' };
-  }
-}
 
 
 /**
