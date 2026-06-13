@@ -1262,7 +1262,6 @@ function getAllUsers(currentUsername) {
         ID: obj.id,
         name: obj.name,
         username: obj.username || obj.usename,
-        password: obj.password,
         role: obj.role,
         startdatetime: obj.startdatetime
       };
