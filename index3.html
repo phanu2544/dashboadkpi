@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Task Management</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <style>
+    .task-overdue {
+      background-color: #ffe5e5 !important;
+    }
+  </style>
+  
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+  <div class="max-w-5xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6">📋 ระบบติดตามงาน</h1>
+
+    <!-- ปุ่มเพิ่มงาน -->
+    <button onclick="addTask()" class="mb-6 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+      ➕ เพิ่มงานใหม่
+    </button>
+
+    <!-- Container รายการงาน -->
+    <div id="taskList" class="space-y-4"></div>
+  </div>
+
+  <script>
+    // ตัวเลือกสถานะและสี
+    const statusOptions = {
+      'Pending': { text: 'รอดำเนินการ', color: 'yellow' },
+      'In-Progress': { text: 'กำลังดำเนินการ', color: 'blue' },
+      'Success': { text: 'สำเร็จ', color: 'green' },
+      'Stop': { text: 'หยุด/ยกเลิก', color: 'red' }
+    };
+
+    // mapping class สำหรับ border
+    const statusClasses = {
+      'Pending': 'border-yellow-500',
+      'In-Progress': 'border-blue-500',
+      'Success': 'border-green-500',
+      'Stop': 'border-red-500'
+    };
+
+    // mock data
+    let tasks = [
+      { id: 1, title: 'เขียนรายงาน', status: 'Pending', deadline: '2025-08-25' },
+      { id: 2, title: 'ทดสอบระบบ', status: 'In-Progress', deadline: '2025-08-30' },
+      { id: 3, title: 'ส่งมอบงานลูกค้า', status: 'Success', deadline: '2025-08-15' },
+      { id: 4, title: 'ประชุมทีม', status: 'Stop', deadline: '2025-08-18' },
+    ];
+
+    // render รายการงาน
+    function renderTasks() {
+      const taskList = document.getElementById('taskList');
+      taskList.innerHTML = '';
+
+      if (tasks.length === 0) {
+        taskList.innerHTML = `<p class="text-gray-500">ยังไม่มีงาน</p>`;
+        return;
+      }
+
+      tasks.forEach(task => {
+        const isOverdue = new Date(task.deadline) < new Date() && task.status !== 'Success';
+
+        const taskDiv = document.createElement('div');
+        taskDiv.className = `
+          p-4 border-l-4 rounded-lg flex flex-col md:flex-row md:items-center 
+          justify-between gap-4 bg-slate-50
+          ${statusClasses[task.status] || 'border-gray-300'}
+          ${isOverdue ? 'task-overdue' : ''}
+        `;
+
+        taskDiv.innerHTML = `
+          <div>
+            <h2 class="font-semibold text-lg">${task.title}</h2>
+            <p class="text-sm text-gray-600">
+              สถานะ: <span class="font-medium text-${statusOptions[task.status].color}-600">
+                ${statusOptions[task.status].text}
+              </span> |
+              กำหนดส่ง: ${task.deadline}
+            </p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="updateTask(${task.id})" class="px-3 py-1 bg-blue-500 text-white rounded-lg">อัปเดต</button>
+            <button onclick="deleteTask(${task.id})" class="px-3 py-1 bg-red-500 text-white rounded-lg">ลบ</button>
+          </div>
+        `;
+
+        taskList.appendChild(taskDiv);
+      });
+    }
+
+    // ฟังก์ชันเพิ่มงาน
+    function addTask() {
+      Swal.fire({
+        title: 'เพิ่มงานใหม่',
+        html: `
+          <input id="taskTitle" class="swal2-input" placeholder="ชื่องาน">
+          <input id="taskDeadline" class="swal2-input" placeholder="กำหนดส่ง">
+        `,
+        focusConfirm: false,
+        didOpen: () => {
+          flatpickr(document.getElementById("taskDeadline"), { dateFormat: "Y-m-d" });
+        },
+        preConfirm: () => {
+          const title = document.getElementById('taskTitle').value;
+          const deadline = document.getElementById('taskDeadline').value;
+          if (!title || !deadline) {
+            Swal.showValidationMessage('กรุณากรอกข้อมูลให้ครบ');
+            return false;
+          }
+          return { title, deadline };
+        }
+      }).then(result => {
+        if (result.isConfirmed) {
+          const newTask = {
+            id: Date.now(),
+            title: result.value.title,
+            deadline: result.value.deadline,
+            status: 'Pending'
+          };
+          tasks.push(newTask);
+          renderTasks();
+          Swal.fire('สำเร็จ!', 'เพิ่มงานเรียบร้อยแล้ว', 'success');
+        }
+      });
+    }
+
+    // ฟังก์ชันอัปเดตสถานะ
+    function updateTask(id) {
+      const task = tasks.find(t => t.id === id);
+      Swal.fire({
+        title: 'อัปเดตสถานะ',
+        input: 'select',
+        inputOptions: {
+          'Pending': 'รอดำเนินการ',
+          'In-Progress': 'กำลังดำเนินการ',
+          'Success': 'สำเร็จ',
+          'Stop': 'หยุด/ยกเลิก'
+        },
+        inputValue: task.status,
+        showCancelButton: true,
+        confirmButtonText: 'บันทึก',
+        cancelButtonText: 'ยกเลิก'
+      }).then(result => {
+        if (result.isConfirmed) {
+          task.status = result.value;
+          renderTasks();
+          Swal.fire('สำเร็จ!', 'อัปเดตสถานะเรียบร้อย', 'success');
+        }
+      });
+    }
+
+    // ฟังก์ชันลบงาน
+    function deleteTask(id) {
+      Swal.fire({
+        title: 'คุณแน่ใจหรือไม่?',
+        text: "คุณต้องการลบงานนี้",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'ลบ',
+        cancelButtonText: 'ยกเลิก'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          tasks = tasks.filter(t => t.id !== id);
+          renderTasks();
+          Swal.fire('ลบแล้ว!', 'งานถูกลบเรียบร้อย', 'success');
+        }
+      });
+    }
+
+    // render ครั้งแรก
+    renderTasks();
+  </script>
+</body>
+</html>

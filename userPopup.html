@@ -1,0 +1,1908 @@
+<!-- userPopup.html -->
+<div id="userModal"
+  class="fixed inset-0 hidden items-center justify-center z-50"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="userModalTitle">
+  <div class="kpi-admin-modal">
+    <!-- System management header -->
+    <div class="kpi-admin-modal__header">
+      <div>
+        <div class="kpi-admin-modal__eyebrow">Superadmin Console</div>
+        <h2 id="userModalTitle" class="kpi-admin-modal__title">ระบบจัดการ</h2>
+        <p class="kpi-admin-modal__subtitle">จัดการรอบรายเดือน คุณภาพข้อมูล และสิทธิ์ผู้ใช้งาน</p>
+      </div>
+      <button type="button"
+        onclick="closeUserModal()"
+        class="kpi-admin-modal__close"
+        aria-label="ปิดหน้าต่าง">
+        ×
+      </button>
+    </div>
+
+    <div class="kpi-admin-modal__body">
+      <!-- Monthly period management -->
+      <section class="kpi-admin-section kpi-admin-section--period">
+        <div class="kpi-admin-section__header">
+          <div>
+            <div class="kpi-admin-section__kicker">Monthly Period</div>
+            <h3 class="kpi-admin-section__title">จัดการรอบรายเดือน</h3>
+            <p class="kpi-admin-section__desc">
+              ตรวจคุณภาพข้อมูลให้เรียบร้อยก่อนปิดรอบ การปิดรอบเป็น action สำคัญและควรดำเนินการเมื่อข้อมูลพร้อมเท่านั้น
+            </p>
+          </div>
+          <span id="last-snapshot-at" class="kpi-admin-status-chip">บันทึกล่าสุด: -</span>
+        </div>
+
+        <!-- Auto snapshot controls are retained for the existing restore logic. -->
+        <div class="hidden">
+          <div class="flex items-start gap-3">
+            <input type="checkbox" id="cfg-enabled" class="mt-1">
+            <div>
+              <div class="font-medium text-slate-700">เปิดใช้งาน Snapshot อัตโนมัติ</div>
+              <div class="text-xs text-slate-500">หากไม่เปิด ระบบจะไม่ทำการ Snapshot อัตโนมัติ</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="font-medium text-slate-700 mb-2">วันที่ทำ Snapshot</div>
+            <div class="flex gap-6">
+              <label class="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" class="cfg-day" value="1"> วันที่ 1
+              </label>
+              <label class="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" class="cfg-day" value="16"> วันที่ 16
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <div class="font-medium text-slate-700 mb-2">เวลาที่ทำ Snapshot</div>
+            <div class="flex items-center gap-3 text-sm text-slate-700">
+              <span>เวลา</span>
+              <input type="number" id="cfg-hour" min="0" max="23"
+                class="border rounded-md px-2 py-1 w-16 text-center">
+              <span>นาฬิกา</span>
+              <input type="number" id="cfg-minute" min="0" max="59"
+                class="border rounded-md px-2 py-1 w-16 text-center">
+              <span>นาที</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-admin-actions kpi-admin-actions--primary">
+          <div class="hidden">
+            <button type="button" onclick="saveSnapshotConfig()">บันทึกการตั้งค่า</button>
+          </div>
+
+          <button type="button"
+            id="btn-preview-close-dq"
+            data-period-control-action="true"
+            onclick="previewClosePeriodDataQualityOnly()"
+            class="kpi-admin-action kpi-admin-action--quality">
+            ตรวจคุณภาพข้อมูลก่อนปิดรอบ
+          </button>
+
+          <button type="button"
+            id="btn-close-monthly-period"
+            data-period-control-action="true"
+            onclick="closeMonthlyPeriodNow()"
+            class="kpi-admin-action kpi-admin-action--danger">
+            ปิดรอบรายเดือน
+          </button>
+        </div>
+
+        <div class="kpi-admin-divider"></div>
+
+        <div class="kpi-admin-actions">
+          <button type="button"
+            id="btn-open-previous-period"
+            data-period-control-action="true"
+            onclick="openPreviousMonthInputPeriodNow()"
+            class="kpi-admin-action kpi-admin-action--secondary">
+            เปิดรอบกรอกเดือนก่อนหน้า
+          </button>
+
+          <button type="button"
+            id="btn-reset-current-period"
+            data-period-control-action="true"
+            onclick="resetPeriodToCurrentMonthNow()"
+            class="kpi-admin-action kpi-admin-action--muted">
+            คืนรอบเป็นเดือนปัจจุบัน
+          </button>
+
+          <!-- Legacy controls remain hidden so the previous functions stay available. -->
+          <div class="hidden">
+            <button type="button" onclick="runSnapshotNow()">บันทึกผลเดือนก่อนเข้า History</button>
+            <button type="button" onclick="resetMonthlyProgress()">Reset เริ่มเดือนใหม่</button>
+          </div>
+        </div>
+
+        <div id="cfg-msg" class="kpi-admin-message" aria-live="polite"></div>
+      </section>
+
+      <!-- User and permission management -->
+      <section id="user-management-section" class="kpi-admin-section">
+        <div class="kpi-admin-section__header">
+          <div>
+            <div class="kpi-admin-section__kicker">Users & Permissions</div>
+            <h3 class="kpi-admin-section__title">จัดการผู้ใช้</h3>
+            <p class="kpi-admin-section__desc">
+              ตรวจสอบบัญชี ปรับ role และลบผู้ใช้ตามสิทธิ์ superadmin เดิมของระบบ
+            </p>
+          </div>
+          <span class="kpi-admin-status-chip">เฉพาะ superadmin</span>
+        </div>
+
+        <div class="user-table-scroll">
+          <table class="kpi-admin-user-table">
+            <thead>
+              <tr>
+                <th class="text-center w-12">ID</th>
+                <th>ชื่อ</th>
+                <th>Username</th>
+                <th class="text-center w-28">Role</th>
+                <th class="text-center">Start</th>
+                <th class="text-center w-20">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="userPopupTableBody" class="text-slate-600"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+
+
+
+  
+
+
+
+
+
+                function openUserModal() {
+
+                  if (window.currentUser?.role !== 'superadmin') {
+                      Swal.fire({
+                        icon: 'warning',
+                        title: 'ไม่มีสิทธิ์เข้าใช้งาน',
+                        text: 'เมนูนี้สำหรับ superadmin เท่านั้น',
+                        confirmButtonText: 'ตกลง'
+                      });
+                      return;
+                    }
+                    
+                showLoader(true);
+                
+                // 1️⃣ โหลดผู้ใช้ก่อน
+                google.script.run
+                .withSuccessHandler(res => {
+                const users = JSON.parse(res);
+                console.log('✅ users received:', users);
+                
+                if (!Array.isArray(users) || users.length === 0) {
+                Swal.fire('⚠️', 'ไม่พบข้อมูลผู้ใช้', 'info');
+                showLoader(false);
+                return;
+                }
+                
+                renderUserTable(users);
+                
+                // 2️⃣ โหลด Snapshot Config เพื่อ restore ค่า
+                google.script.run
+                .withSuccessHandler(cfg => {
+                restoreSnapshotConfig(cfg); // 👈 จุดสำคัญ
+
+                document.getElementById('last-snapshot-at').textContent =
+                cfg?.lastMonthlyCloseAt
+                  ? 'ปิดรอบล่าสุด: ' + formatDateThai(cfg.lastMonthlyCloseAt) + 
+                    ' (' + (cfg.lastMonthlyClosePeriod || '-') + ')'
+                  : 'Snapshot ล่าสุด: ' + formatDateThai(cfg?.recordedAt);
+
+                // 3️⃣ ค่อยเปิด modal หลัง restore เสร็จ
+                const modal = document.getElementById('userModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+
+                const role = window.currentUser?.role;
+                
+                
+                // ✅ superadmin เห็นทุกอย่างเท่านั้น
+                document.getElementById('user-management-section').style.display = 'block';
+                
+                showLoader(false);
+                })
+                .withFailureHandler(() => {
+                console.error('❌ โหลด Snapshot Config ไม่สำเร็จ');
+                showLoader(false);
+                })
+                .getSnapshotConfig(); // 👈 เรียกฝั่ง Code.gs
+                
+                })
+                .withFailureHandler(() => {
+                Swal.fire('❌', 'โหลดข้อมูลผู้ใช้ไม่สำเร็จ', 'error');
+                showLoader(false);
+                })
+                .getAllUsers(window.currentUser?.username);
+                }
+
+
+
+function closeUserModal() {
+  document.getElementById('userModal').classList.add('hidden');
+}
+
+// 🕓 ฟังก์ชันแปลงเวลาให้สวย
+function formatDateThai(isoDate) {
+  if (!isoDate) return '-';
+  const date = new Date(isoDate);
+  const options = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+  return date.toLocaleDateString('th-TH', options).replace(' ', ' ');
+}
+
+// 🎨 render ตารางผู้ใช้
+function renderUserTable(users) {
+  const tbody = document.getElementById('userPopupTableBody');
+  const role = window.currentUser?.role || 'user';
+  
+  tbody.innerHTML = users.map((u, i) => {
+    const isSelf = window.currentUser?.username === u.username;
+    const isSuperAdmin = role === 'superadmin';
+    const isAdmin = role === 'admin';
+
+    return `
+      <tr>
+        <td class="text-center font-medium">${u.ID || i + 1}</td>
+        <td>${u.name || '-'}</td>
+        <td class="text-slate-700">${u.username || '-'}</td>
+
+        <td class="text-center">
+          <select 
+            onchange="updateUserRole('${u.ID}', this.value, window.currentUser?.username)"
+            ${(!isSuperAdmin || isSelf)? 'disabled class="cursor-not-allowed opacity-60 border border-slate-200 rounded-lg px-2 py-1 bg-slate-100 text-slate-400"' 
+                                  : 'class="border border-slate-300 rounded-lg px-2 py-1 bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none"'}
+          >
+            <option value="user" ${u.role === 'user' ? 'selected' : ''}>user</option>
+            <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>admin</option>
+            <option value="superadmin" ${u.role === 'superadmin' ? 'selected' : ''}>superadmin</option>
+          </select>
+        </td>
+
+        <td class="text-center text-xs text-slate-500">${formatDateThai(u.startdatetime)}</td>
+
+        <td class="text-center">
+          ${isSuperAdmin && !isSelf
+            ? `<button type="button"
+                onclick="deleteUser('${u.ID}', window.currentUser?.username)"
+                class="kpi-admin-delete"
+                title="ลบผู้ใช้"
+                aria-label="ลบผู้ใช้ ${u.username || ''}">×</button>`
+            : `<span class="text-slate-300">-</span>`}
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// 🧩 ฟังก์ชันอัปเดต Role
+function updateUserRole(id, newRole, currentUsername) {
+  google.script.run
+    .withSuccessHandler(res => {
+      try {
+        const data = typeof res === 'string' ? JSON.parse(res) : res;
+        Swal.fire({
+          icon: 'success',
+          title: data.message,
+          showConfirmButton: false,
+          timer: 2000
+        });
+      } catch (e) {
+        Swal.fire({
+          icon: 'success',
+          title: res,
+          showConfirmButton: false,
+          timer: 2000
+        });
+      }
+    })
+    .withFailureHandler(() =>
+      Swal.fire({
+        icon: 'error',
+        title: 'แก้ไข Role ไม่สำเร็จ',
+        showConfirmButton: false,
+        timer: 2000
+      })
+    )
+    .updateUserRole(id, newRole, currentUsername);
+}
+
+
+// 🗑️ ฟังก์ชันลบผู้ใช้
+function deleteUser(id, currentUsername) {
+  Swal.fire({
+    title: 'ลบผู้ใช้นี้หรือไม่?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'ลบ',
+    cancelButtonText: 'ยกเลิก'
+  }).then(result => {
+    if (result.isConfirmed) {
+      google.script.run
+        .withSuccessHandler(res => {
+          try {
+            const data = typeof res === 'string' ? JSON.parse(res) : res;
+            Swal.fire({
+              icon: 'success',
+              title: data.message, // ✅ ไม่มีไอคอนซ้ำ
+              showConfirmButton: false,
+              timer: 2000
+            });
+          } catch (e) {
+            Swal.fire({
+              icon: 'success',
+              title: res,
+              showConfirmButton: false,
+              timer: 2000
+            });
+          }
+          openUserModal();
+        })
+        .withFailureHandler(() =>
+          Swal.fire({
+            icon: 'error',
+            title: 'ลบไม่สำเร็จ',
+            showConfirmButton: false,
+            timer: 2000
+          })
+        )
+        .deleteUser(id, currentUsername);
+    }
+  });
+}
+
+
+        function restoreSnapshotConfig(cfg) {
+        if (!cfg) return;
+        
+        // ☑️ Auto
+        const autoEl = document.getElementById("cfg-enabled");
+        autoEl.checked = !!cfg.enabled;
+        
+        // 📅 วัน
+        const days = String(cfg.snapshot_days || "")
+        .split(",")
+        .map(d => d.trim());
+        
+        document.querySelectorAll(".cfg-day").forEach(cb => {
+        cb.checked = days.includes(cb.value);
+        });
+        
+        // ⏰ เวลา
+        document.getElementById("cfg-hour").value = cfg.snapshot_hour ?? "";
+        document.getElementById("cfg-minute").value = cfg.snapshot_minute ?? "";
+        
+        // sync disable/enable
+        autoEl.dispatchEvent(new Event("change"));
+        }
+
+
+   
+          function saveSnapshotConfig() {
+          const enabled = document.getElementById("cfg-enabled").checked;
+
+          const days = [...document.querySelectorAll(".cfg-day:checked")]
+          .map(el => el.value)
+          .join(",");
+
+          const hour = document.getElementById("cfg-hour").value;
+          const minute = document.getElementById("cfg-minute").value;
+
+          // ❗ ถ้าเปิด auto แต่ข้อมูลไม่ครบ
+          if (enabled) {
+          if (!days) {
+          Swal.fire("⚠️", "กรุณาเลือกวันที่ Snapshot", "warning");
+          return;
+          }
+          if (hour === "" || minute === "") {
+          Swal.fire("⚠️", "กรุณากำหนดเวลา Snapshot", "warning");
+          return;
+          }
+          }
+
+          const payload = {
+          enabled,
+          snapshot_days: days || "", // ✅ ว่างได้
+          snapshot_hour: hour || "", // ✅ ว่างได้
+          snapshot_minute: minute || "" // ✅ ว่างได้
+          };
+
+          document.getElementById("cfg-msg").textContent = "⏳ กำลังบันทึก...";
+
+          google.script.run
+          .withSuccessHandler(msg => {
+          document.getElementById("cfg-msg").textContent = msg || "✅ บันทึกสำเร็จ";
+          })
+          .withFailureHandler(err => {
+          console.error(err);
+          document.getElementById("cfg-msg").textContent = "❌ บันทึกไม่สำเร็จ";
+          })
+          .saveSnapshotConfig(payload, window.currentUser?.username);
+          }
+
+
+            document.addEventListener("DOMContentLoaded", () => {
+            const autoCheckbox = document.getElementById("cfg-enabled");
+            if (!autoCheckbox) return;
+
+            autoCheckbox.addEventListener("change", e => {
+            const disabled = !e.target.checked;
+            document
+             .querySelectorAll("#cfg-hour, #cfg-minute")
+            .forEach(el => el.disabled = disabled);
+            });
+
+            // เรียกครั้งแรก เพื่อ sync สถานะตอนเปิด popup
+            autoCheckbox.dispatchEvent(new Event("change"));
+            });
+
+            function runSnapshotNow() {
+  if (!confirm("ต้องการบันทึกผลเดือนก่อนเข้า TaskHistory หรือไม่?")) return;
+
+  document.getElementById("cfg-msg").textContent =
+    "⏳ กำลังบันทึกผลเดือนก่อนเข้า History...";
+
+  google.script.run
+    .withSuccessHandler(msg => {
+      document.getElementById("cfg-msg").textContent =
+        msg || "✅ บันทึกผลเดือนก่อนสำเร็จ";
+    })
+    .withFailureHandler(err => {
+      console.error(err);
+      document.getElementById("cfg-msg").textContent =
+        "❌ บันทึกผลเดือนก่อนไม่สำเร็จ";
+    })
+    .snapshotNow(window.currentUser?.username);
+
+  document.getElementById("last-snapshot-at").textContent =
+    "Snapshot ล่าสุด: " + formatDateThai(new Date().toISOString());
+}
+
+
+
+function resetMonthlyProgress() {
+  Swal.fire({
+    title: "ยืนยัน Reset เริ่มเดือนใหม่?",
+    html: `
+      <div class="text-left text-sm leading-6">
+        <b class="text-red-600">คำเตือน:</b><br>
+        ระบบจะตรวจสอบก่อนว่าได้บันทึกผลเดือนก่อนเข้า History แล้วหรือยัง<br><br>
+        ถ้าบันทึกครบแล้ว ระบบจะล้างค่า:<br>
+        - Progress<br>
+        - ProgressOutcome<br>
+        - ปัญหา / ขั้นตอนต่อไป<br>
+        - สถานะกลับเป็น Pending<br><br>
+        แต่จะไม่ลบรายการตัวชี้วัดหลัก
+      </div>
+    `,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Reset เริ่มเดือนใหม่",
+    cancelButtonText: "ยกเลิก",
+    confirmButtonColor: "#dc2626"
+  }).then(result => {
+    if (!result.isConfirmed) return;
+
+    const msgEl = document.getElementById("cfg-msg");
+    if (msgEl) {
+      msgEl.textContent = "⏳ กำลังตรวจสอบและ Reset...";
+    }
+
+    google.script.run
+      .withSuccessHandler(msg => {
+        if (msgEl) {
+          msgEl.textContent = msg || "✅ Reset สำเร็จ";
+        }
+
+        const isBlocked = String(msg || "").includes("⛔") || String(msg || "").includes("❌");
+
+        Swal.fire({
+          icon: isBlocked ? "warning" : "success",
+          title: isBlocked ? "ยัง Reset ไม่ได้" : "Reset สำเร็จ",
+          text: msg || "Reset เริ่มเดือนใหม่เรียบร้อยแล้ว",
+          confirmButtonText: "ตกลง"
+        });
+
+        if (!isBlocked && typeof fetchData === "function") {
+          fetchData();
+        }
+      })
+      .withFailureHandler(err => {
+        console.error(err);
+
+        if (msgEl) {
+          msgEl.textContent = "❌ Reset ไม่สำเร็จ";
+        }
+
+        Swal.fire({
+          icon: "error",
+          title: "เกิดข้อผิดพลาด",
+          text: err.message || "ไม่สามารถ Reset ได้"
+        });
+      })
+      .resetMonthlyTaskProgress(window.currentUser?.username);
+  });
+}
+
+
+
+
+          // =====================================================
+          // ✅ Step 14.2 Close Period Lock Helpers
+          // ใช้ล็อกปุ่มจัดการรอบระหว่างตรวจ DQ / ปิดรอบจริง
+          // =====================================================
+
+          window.closePeriodFlowState = window.closePeriodFlowState || {
+            locked: false,
+            stage: "idle",
+            startedAt: null
+          };
+
+          function getClosePeriodMsgEl_() {
+            return document.getElementById("cfg-msg");
+          }
+
+          function isClosePeriodFlowLocked_() {
+            return window.closePeriodFlowState &&
+              window.closePeriodFlowState.locked === true;
+          }
+
+          function setPeriodControlButtonsLocked_(locked) {
+            document.querySelectorAll("[data-period-control-action]").forEach(function(btn) {
+              if (!btn.dataset.originalHtml) {
+                btn.dataset.originalHtml = btn.innerHTML;
+              }
+
+              btn.disabled = locked;
+              btn.classList.toggle("opacity-50", locked);
+              btn.classList.toggle("cursor-not-allowed", locked);
+
+              if (!locked) {
+                btn.innerHTML = btn.dataset.originalHtml;
+              }
+            });
+
+            const closeBtn = document.getElementById("btn-close-monthly-period");
+            if (closeBtn && locked) {
+              closeBtn.innerHTML = "⏳ กำลังทำงาน...";
+            }
+          }
+
+          function setClosePeriodFlowLocked_(locked, stage, message) {
+            window.closePeriodFlowState = {
+              locked: locked === true,
+              stage: stage || (locked ? "working" : "idle"),
+              startedAt: locked ? new Date().toISOString() : null
+            };
+
+            setPeriodControlButtonsLocked_(locked === true);
+
+            const msgEl = getClosePeriodMsgEl_();
+            if (msgEl && message) {
+              msgEl.textContent = message;
+            }
+          }
+
+          function beginClosePeriodFlow_(stage, message) {
+            if (isClosePeriodFlowLocked_()) {
+              Swal.fire({
+                icon: "info",
+                title: "ระบบกำลังทำงานอยู่",
+                text: "กรุณารอให้ขั้นตอนตรวจข้อมูล / ปิดรอบเสร็จก่อน แล้วค่อยลองใหม่",
+                confirmButtonText: "ตกลง"
+              });
+              return false;
+            }
+
+            setClosePeriodFlowLocked_(
+              true,
+              stage,
+              message || "⏳ กำลังดำเนินการ..."
+            );
+
+            return true;
+          }
+
+          function finishClosePeriodFlow_(message) {
+            setClosePeriodFlowLocked_(false, "idle", message || "");
+          }
+
+          function parseClosePeriodServerResponse_(res) {
+            if (typeof res === "string") {
+              try {
+                return JSON.parse(res);
+              } catch (err) {
+                return {
+                  success: false,
+                  canClose: false,
+                  message: res
+                };
+              }
+            }
+
+            return res || {};
+          }
+
+          function requireClosePeriodSuperAdmin_() {
+            if (window.currentUser?.role !== "superadmin") {
+              Swal.fire({
+                icon: "warning",
+                title: "ไม่มีสิทธิ์ปิดรอบ",
+                text: "เมนูปิดรอบรายเดือนสำหรับ superadmin เท่านั้น",
+                confirmButtonText: "ตกลง"
+              });
+              return false;
+            }
+
+            return true;
+          }
+                  function previewClosePeriodDataQualityOnly() {
+                    if (!requireClosePeriodSuperAdmin_()) return;
+
+                    if (!beginClosePeriodFlow_(
+                      "dq-preview",
+                      "⏳ กำลังตรวจสอบคุณภาพข้อมูลก่อนปิดรอบ..."
+                    )) {
+                      return;
+                    }
+
+                    Swal.fire({
+                      title: "กำลังตรวจสอบข้อมูล...",
+                      text: "ระบบกำลังตรวจ Critical / Warning ก่อนปิดรอบ",
+                      allowOutsideClick: false,
+                      allowEscapeKey: false,
+                      didOpen: function() {
+                        Swal.showLoading();
+                      }
+                    });
+
+                    google.script.run
+                      .withSuccessHandler(function(res) {
+                        const dq = parseClosePeriodServerResponse_(res);
+                        dq.previewOnly = true;
+
+                        const critical = Number(dq.criticalCount || 0);
+                        const warning = Number(dq.warningCount || 0);
+
+                        const msgEl = getClosePeriodMsgEl_();
+                        if (msgEl) {
+                          msgEl.textContent = dq.success
+                            ? `ตรวจข้อมูลแล้ว: Critical ${critical}, Warning ${warning}`
+                            : "❌ ตรวจข้อมูลไม่สำเร็จ";
+                        }
+
+                        showDataQualityReviewModal(dq);
+                      })
+                      .withFailureHandler(function(err) {
+                        console.error(err);
+
+                        finishClosePeriodFlow_("❌ ตรวจข้อมูลไม่สำเร็จ");
+
+                        Swal.fire({
+                          icon: "error",
+                          title: "ตรวจข้อมูลไม่สำเร็จ",
+                          text: err && err.message ? err.message : "เกิดข้อผิดพลาด",
+                          confirmButtonText: "ตกลง"
+                        });
+                      })
+                      .getDataQualityBeforeClosePeriodForUI(window.currentUser?.username);
+                  }
+
+
+
+                  function closeMonthlyPeriodNow() {
+                    if (!requireClosePeriodSuperAdmin_()) return;
+
+                    if (!beginClosePeriodFlow_(
+                      "dq-before-close",
+                      "⏳ กำลังตรวจคุณภาพข้อมูลก่อนปิดรอบจริง..."
+                    )) {
+                      return;
+                    }
+
+                    Swal.fire({
+                      title: "กำลังตรวจข้อมูลก่อนปิดรอบ...",
+                      text: "ระบบจะตรวจ Critical / Warning ก่อนเปิดขั้นตอนยืนยัน",
+                      allowOutsideClick: false,
+                      allowEscapeKey: false,
+                      didOpen: function() {
+                        Swal.showLoading();
+                      }
+                    });
+
+                    google.script.run
+                      .withSuccessHandler(function(res) {
+                        const dq = parseClosePeriodServerResponse_(res);
+                        dq.previewOnly = false;
+
+                        const critical = Number(dq.criticalCount || 0);
+                        const warning = Number(dq.warningCount || 0);
+
+                        const msgEl = getClosePeriodMsgEl_();
+                        if (msgEl) {
+                          msgEl.textContent = dq.success
+                            ? `ตรวจข้อมูลแล้ว: Critical ${critical}, Warning ${warning}`
+                            : "❌ ตรวจข้อมูลไม่สำเร็จ";
+                        }
+
+                        showDataQualityReviewModal(dq);
+                      })
+                      .withFailureHandler(function(err) {
+                        console.error(err);
+
+                        finishClosePeriodFlow_("❌ ตรวจข้อมูลก่อนปิดรอบไม่สำเร็จ");
+
+                        Swal.fire({
+                          icon: "error",
+                          title: "ตรวจข้อมูลก่อนปิดรอบไม่สำเร็จ",
+                          text: err && err.message ? err.message : "เกิดข้อผิดพลาด",
+                          confirmButtonText: "ตกลง"
+                        });
+                      })
+                      .getDataQualityBeforeClosePeriodForUI(window.currentUser?.username);
+                  }
+
+
+                function showDataQualityReviewModal(dq) {
+                  dq = dq || {};
+
+                  const previewOnly = dq.previewOnly === true;
+                  const hasCritical = Number(dq.criticalCount || 0) > 0;
+                  const hasWarning = Number(dq.warningCount || 0) > 0;
+
+                  // ✅ ป้องกัน UI ปล่อยผ่าน Critical แม้ backend ส่ง canClose เพี้ยน
+                  const canClose = dq.success === true && dq.canClose === true && !hasCritical;
+
+                  let icon = "success";
+                  let title = "ตรวจข้อมูลเรียบร้อย พร้อมปิดรอบ";
+
+                  if (hasCritical) {
+                    icon = "error";
+                    title = "ยังปิดรอบไม่ได้";
+                  } else if (hasWarning) {
+                    icon = "warning";
+                    title = "ตรวจข้อมูลเรียบร้อย มี Warning แต่สามารถปิดรอบได้";
+                  }
+
+                  return Swal.fire({
+                    icon: icon,
+                    title: title,
+                    html: buildDataQualityReviewHTML(dq),
+                    width: "min(1120px, 96vw)",
+                    showCancelButton: canClose && !previewOnly,
+                    confirmButtonText: previewOnly
+                      ? "ปิด"
+                      : (
+                          canClose
+                            ? "อ่าน Warning แล้ว ไปขั้นตอนยืนยันปิดรอบ"
+                            : "รับทราบ"
+                        ),
+                    cancelButtonText: "ยกเลิก",
+                    confirmButtonColor: canClose ? "#059669" : "#475569",
+                    cancelButtonColor: "#64748b",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    customClass: {
+                      htmlContainer: "text-left"
+                    }
+                  }).then(function(result) {
+                    if (!result.isConfirmed) {
+                      finishClosePeriodFlow_("ยกเลิกการปิดรอบแล้ว");
+                      return;
+                    }
+
+                    // ✅ ปุ่ม “ตรวจคุณภาพข้อมูล” ดูผลอย่างเดียว ไม่ไปปิดรอบ
+                    if (previewOnly) {
+                      finishClosePeriodFlow_(
+                        `ตรวจข้อมูลแล้ว: Critical ${Number(dq.criticalCount || 0)}, Warning ${Number(dq.warningCount || 0)}`
+                      );
+                      return;
+                    }
+
+                    // ✅ Critical > 0 หรือ canClose false = ห้ามไปขั้นตอนพิมพ์ ปิดรอบ
+                    if (!canClose) {
+                      finishClosePeriodFlow_("⛔ ปิดรอบไม่ได้ กรุณาแก้ Critical Issue ก่อน");
+                      return;
+                    }
+
+                    showFinalClosePeriodConfirm(dq);
+                  });
+                }
+
+
+function buildDataQualityReviewHTML(dq) {
+  const totalRows = Number(dq.totalRows || 0);
+  const criticalCount = Number(dq.criticalCount || 0);
+  const warningCount = Number(dq.warningCount || 0);
+
+  const summary = dq.summary || {};
+
+  const due = Number(summary.due || 0);
+  const notDue = Number(summary.notDue || 0);
+  const submitted = Number(summary.submitted || 0);
+  const notSubmitted = Number(summary.notSubmitted || 0);
+  const notEvaluable = Number(summary.notEvaluable || 0);
+
+  const topFields = dq?.issueSummary?.topFields || [];
+  const sampleIssues = dq.sampleIssues || [];
+
+  const statusBox = criticalCount > 0
+    ? `
+      <div class="rounded-2xl border border-red-200 bg-red-50 p-4">
+        <div class="font-bold text-red-700 text-base">
+          ⛔ พบข้อมูลสำคัญที่ต้องแก้ก่อน
+        </div>
+        <div class="text-sm text-red-600 mt-1 leading-relaxed">
+          ระบบจะยังไม่ให้ปิดรอบ เพราะอาจทำให้ Snapshot หรือรายงานผู้บริหารผิดพลาด
+        </div>
+      </div>
+    `
+    : `
+      <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+        <div class="font-bold text-emerald-700 text-base">
+          ✅ ไม่พบ Critical Issue
+        </div>
+        <div class="text-sm text-emerald-600 mt-1 leading-relaxed">
+          สามารถปิดรอบได้ ข้อมูลไม่พบปัญหาระดับรุนแรงที่กระทบการ Snapshot
+          <br>
+          รายการ Warning เป็นข้อมูลที่ควรทยอยปรับปรุง เพื่อให้ Dashboard สมบูรณ์ขึ้น
+        </div>
+      </div>
+    `;
+
+  const topFieldHTML = topFields.length
+    ? topFields.map(item => {
+        const maxCount = Math.max(...topFields.map(x => Number(x.count || 0)), 1);
+        const pct = Math.max(8, Math.round((Number(item.count || 0) / maxCount) * 100));
+        const fieldName = dqFieldThai(item.field);
+
+        return `
+          <div class="rounded-2xl border border-slate-200 bg-white p-4">
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <div class="font-bold text-slate-700 text-base leading-relaxed">
+                  ${dqEscapeHTML(fieldName)}
+                </div>
+                <div class="text-xs text-slate-400 mt-0.5">
+                  ${dqEscapeHTML(item.field)}
+                </div>
+              </div>
+
+              <div class="shrink-0 text-right">
+                <div class="font-bold text-slate-700 text-xl">
+                  ${Number(item.count || 0)}
+                </div>
+                <div class="text-xs text-slate-400">
+                  รายการ
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-3 h-2.5 rounded-full bg-slate-100 overflow-hidden">
+              <div class="${item.critical > 0 ? "bg-red-400" : "bg-amber-400"} h-2.5 rounded-full"
+                style="width:${pct}%"></div>
+            </div>
+
+            <div class="mt-3 flex flex-wrap gap-2 text-xs">
+              ${
+                item.critical > 0
+                  ? `<span class="rounded-full bg-red-50 text-red-600 border border-red-100 px-2.5 py-1 font-semibold">Critical ${item.critical}</span>`
+                  : ""
+              }
+              ${
+                item.warning > 0
+                  ? `<span class="rounded-full bg-amber-50 text-amber-600 border border-amber-100 px-2.5 py-1 font-semibold">Warning ${item.warning}</span>`
+                  : ""
+              }
+            </div>
+          </div>
+        `;
+      }).join("")
+    : `
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-slate-500">
+        ไม่พบประเด็น Data Quality
+      </div>
+    `;
+
+  const issueHTML = sampleIssues.length
+    ? sampleIssues.slice(0, 10).map(issue => {
+        const isCritical = issue.level === "critical";
+
+        return `
+          <div class="rounded-2xl border ${isCritical ? "border-red-100 bg-red-50" : "border-amber-100 bg-amber-50"} p-4">
+            <div class="flex flex-col gap-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded-full ${isCritical ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"} px-2.5 py-1 text-xs font-bold">
+                  ${isCritical ? "Critical" : "Warning"}
+                </span>
+
+                <span class="text-xs text-slate-500">
+                  แถว ${dqEscapeHTML(issue.rowNumber || "-")} • ${dqEscapeHTML(issue.field || "-")}
+                </span>
+              </div>
+
+              <div class="font-bold text-slate-700 text-base leading-relaxed break-words">
+                ${dqEscapeHTML(issue.taskName || issue.taskId || "-")}
+              </div>
+
+              <div class="text-sm ${isCritical ? "text-red-700" : "text-amber-700"} leading-relaxed">
+                ${dqEscapeHTML(issue.message || "-")}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("")
+    : `
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-slate-500">
+        ไม่มีรายการตัวอย่างที่ต้องแก้
+      </div>
+    `;
+
+  return `
+    <div class="space-y-4 text-left font-kanit">
+
+      ${statusBox}
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+          <div class="text-xs font-semibold text-slate-500">รายการทั้งหมด</div>
+          <div class="text-3xl font-bold text-slate-700 mt-1">${totalRows}</div>
+          <div class="text-xs text-slate-400 mt-1">ตัวชี้วัด</div>
+        </div>
+
+        <div class="rounded-2xl border border-red-100 bg-red-50 p-4">
+          <div class="text-xs font-semibold text-red-600">Critical</div>
+          <div class="text-3xl font-bold text-red-700 mt-1">${criticalCount}</div>
+          <div class="text-xs text-red-500 mt-1">ต้องแก้ก่อนปิดรอบ</div>
+        </div>
+
+        <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+          <div class="text-xs font-semibold text-amber-600">Warning</div>
+          <div class="text-3xl font-bold text-amber-700 mt-1">${warningCount}</div>
+          <div class="text-xs text-amber-500 mt-1">
+            ไม่บล็อกการปิดรอบ / ควรทยอยปรับปรุง
+          </div>
+        </div>
+      </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div class="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+            <div class="text-xs font-semibold text-blue-600">ถึงรอบรายงาน</div>
+            <div class="text-2xl font-bold text-blue-700 mt-1">${due}</div>
+            <div class="text-xs text-blue-500 mt-1">รายการที่ต้องรายงาน</div>
+          </div>
+
+          <div class="rounded-2xl border border-sky-100 bg-sky-50 p-4">
+            <div class="text-xs font-semibold text-sky-600">ยังไม่ถึงรอบ</div>
+            <div class="text-2xl font-bold text-sky-700 mt-1">${notDue}</div>
+            <div class="text-xs text-sky-500 mt-1">ไม่ถือว่าค้างส่ง</div>
+          </div>
+
+          <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+            <div class="text-xs font-semibold text-emerald-600">ส่งข้อมูลแล้ว</div>
+            <div class="text-2xl font-bold text-emerald-700 mt-1">${submitted}</div>
+            <div class="text-xs text-emerald-500 mt-1">เฉพาะรายการที่ถึงรอบ</div>
+          </div>
+
+          <div class="rounded-2xl border border-orange-100 bg-orange-50 p-4">
+            <div class="text-xs font-semibold text-orange-600">ถึงรอบแต่ยังไม่ส่ง</div>
+            <div class="text-2xl font-bold text-orange-700 mt-1">${notSubmitted}</div>
+            <div class="text-xs text-orange-500 mt-1">ไม่นับรวม NotDue</div>
+          </div>
+
+          <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+            <div class="text-xs font-semibold text-amber-600">รอประเมิน</div>
+            <div class="text-2xl font-bold text-amber-700 mt-1">${notEvaluable}</div>
+            <div class="text-xs text-amber-500 mt-1">ส่งแล้วแต่ยังประเมินไม่ได้</div>
+          </div>
+        </div>
+
+      <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+        <div class="mb-4">
+          <div class="font-bold text-slate-700 text-lg">
+            สรุปประเด็นที่พบมากที่สุด
+          </div>
+          <div class="text-sm text-slate-500 mt-1">
+            ใช้ดูว่าควรแก้ข้อมูลกลุ่มไหนก่อน
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          ${topFieldHTML}
+        </div>
+      </div>
+
+      <div class="rounded-3xl border border-slate-200 bg-white p-5">
+        <div class="mb-4">
+          <div class="font-bold text-slate-700 text-lg">
+            ตัวอย่างรายการที่ควรตรวจสอบ
+          </div>
+          <div class="text-sm text-slate-500 mt-1">
+            แสดงตัวอย่างสูงสุด 10 รายการแรก โดยเรียง Critical ก่อน Warning
+          </div>
+        </div>
+
+        <div class="space-y-3 max-h-[360px] overflow-y-auto pr-2">
+          ${issueHTML}
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 text-sm text-blue-700 leading-relaxed">
+        💡 <b>คำแนะนำ:</b> เมื่อ Critical = 0 สามารถดำเนินการปิดรอบได้
+        ส่วน Warning เช่น กลุ่มงานว่าง / ผู้รับผิดชอบว่าง / ยังไม่กำหนดรูปแบบประเมิน
+        ควรวางแผนปรับปรุงข้อมูล Master ภายหลัง
+        <br>
+        🔐 ระบบจะยังไม่ปิดรอบทันที จนกว่าจะกดยืนยันและพิมพ์คำว่า <b>ปิดรอบ</b> ในขั้นตอนถัดไป
+      </div>
+    </div>
+  `;
+}
+
+
+      function showFinalClosePeriodConfirm(dq) {
+        dq = dq || {};
+
+        const periodLabel = dq.periodLabel || window.activePeriodInfo?.label || "-";
+        const warningCount = Number(dq.warningCount || 0);
+
+        return Swal.fire({
+          title: "ยืนยันปิดรอบรายเดือน?",
+          html: `
+            <div class="text-left text-sm leading-6">
+              <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 mb-4">
+                <div class="font-semibold text-emerald-700">
+                  ✅ ตรวจ Data Quality แล้ว ไม่พบ Critical Issue
+                </div>
+                <div class="text-xs text-emerald-600 mt-1">
+                  รอบที่จะปิด: <b>${dqEscapeHTML(periodLabel)}</b><br>
+                  Warning ที่พบ: <b>${warningCount}</b> รายการ<br>
+                  ขั้นตอนถัดไปคือ Snapshot ข้อมูลรอบปัจจุบัน แล้ว Reset เพื่อเปิดรอบใหม่
+                </div>
+              </div>
+
+              <p>ระบบจะดำเนินการตามลำดับนี้:</p>
+              <ol class="list-decimal ml-5 mt-2">
+                <li>บันทึก Snapshot รอบปัจจุบันเข้า TaskHistory</li>
+                <li>Reset ข้อมูลรายเดือนใน TaskData</li>
+                <li>เปิดรอบใหม่เป็นเดือนถัดไป</li>
+              </ol>
+
+              <p class="mt-3 text-red-600 font-semibold">
+                คำสั่งนี้มีผลกับข้อมูลรายเดือน ควรใช้หลังตรวจสอบข้อมูลครบแล้ว
+              </p>
+
+              <div class="mt-4 rounded-lg bg-red-50 border border-red-200 p-3">
+                <label class="block text-sm font-semibold text-red-700 mb-1">
+                  เพื่อยืนยัน กรุณาพิมพ์คำว่า: ปิดรอบ
+                </label>
+                <input id="confirmClosePeriodText"
+                  class="swal2-input"
+                  style="width:90%; margin: 0;"
+                  placeholder="พิมพ์คำว่า ปิดรอบ">
+              </div>
+            </div>
+          `,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "ยืนยันปิดรอบ",
+          cancelButtonText: "ยกเลิก",
+          confirmButtonColor: "#b91c1c",
+          cancelButtonColor: "#64748b",
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          focusConfirm: false,
+          preConfirm: function() {
+            const value = document.getElementById("confirmClosePeriodText")?.value?.trim();
+
+            if (value !== "ปิดรอบ") {
+              Swal.showValidationMessage("กรุณาพิมพ์คำว่า ปิดรอบ ให้ถูกต้อง");
+              return false;
+            }
+
+            return true;
+          }
+        }).then(function(result) {
+          if (!result.isConfirmed) {
+            finishClosePeriodFlow_("ยกเลิกการปิดรอบแล้ว");
+            return;
+          }
+
+          runCloseMonthlyPeriodAfterDQ();
+        });
+      }
+
+
+      function runCloseMonthlyPeriodAfterDQ() {
+        const msgEl = getClosePeriodMsgEl_();
+
+        // ✅ เผื่อถูกเรียกจาก console โดยตรง ก็ยังต้อง lock
+        if (!isClosePeriodFlowLocked_()) {
+          if (!beginClosePeriodFlow_(
+            "closing",
+            "⏳ กำลังปิดรอบรายเดือน กรุณารอสักครู่..."
+          )) {
+            return;
+          }
+        } else {
+          setClosePeriodFlowLocked_(
+            true,
+            "closing",
+            "⏳ กำลังปิดรอบรายเดือน กรุณารอสักครู่..."
+          );
+        }
+
+        if (msgEl) {
+          msgEl.textContent = "⏳ กำลังปิดรอบรายเดือน กรุณารอสักครู่...";
+        }
+
+        Swal.fire({
+          title: "กำลังปิดรอบรายเดือน...",
+          html: `
+            <div class="text-sm text-slate-600">
+              ระบบกำลัง Snapshot และ Reset ข้อมูล<br>
+              กรุณาอย่าปิดหน้าต่างนี้
+            </div>
+          `,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          didOpen: function() {
+            Swal.showLoading();
+          }
+        });
+
+        google.script.run
+          .withSuccessHandler(function(msg) {
+            const text = String(msg || "").trim();
+            const isSuccess = text.startsWith("✅");
+
+            if (msgEl) {
+              msgEl.textContent = text || "เสร็จสิ้น";
+            }
+
+            if (isSuccess) {
+              const lastSnapshotEl = document.getElementById("last-snapshot-at");
+              if (lastSnapshotEl) {
+                lastSnapshotEl.textContent =
+                  "ปิดรอบล่าสุด: " + formatDateThai(new Date().toISOString());
+              }
+            }
+
+            Swal.fire({
+              icon: isSuccess ? "success" : "warning",
+              title: isSuccess ? "ปิดรอบสำเร็จ" : "ยังปิดรอบไม่สำเร็จ",
+              html: buildClosePeriodResultHTML(text),
+              confirmButtonText: isSuccess ? "อ่านแล้ว / รีเฟรชหน้าจอ" : "รับทราบ",
+              allowOutsideClick: false,
+              width: "720px"
+            }).then(function() {
+              if (!isSuccess) {
+                // ✅ Error / Block / Duplicate ไม่ reload หน้า ไม่ reset UI มั่ว
+                finishClosePeriodFlow_(text || "⚠️ ปิดรอบไม่สำเร็จ");
+                return;
+              }
+
+              // ✅ Success เท่านั้นจึง clear cache + reload dashboard/banner/chart
+              if (typeof reloadDashboardAfterPeriodChanged === "function") {
+                reloadDashboardAfterPeriodChanged();
+              } else {
+                if (typeof clearHistoryCaches === "function") {
+                  clearHistoryCaches("close monthly period success");
+                }
+
+                if (typeof renderMonthlyReportBanner === "function") {
+                  renderMonthlyReportBanner(function() {
+                    if (typeof fetchData === "function") {
+                      fetchData();
+                    }
+
+                    if (typeof refreshMonthlyChartSilent === "function") {
+                      refreshMonthlyChartSilent(true);
+                    }
+                  });
+                } else {
+                  if (typeof fetchData === "function") {
+                    fetchData();
+                  }
+
+                  if (typeof refreshMonthlyChartSilent === "function") {
+                    refreshMonthlyChartSilent(true);
+                  }
+                }
+              }
+
+              finishClosePeriodFlow_("✅ ปิดรอบสำเร็จและรีเฟรชข้อมูลแล้ว");
+            });
+          })
+          .withFailureHandler(function(err) {
+            console.error(err);
+
+            finishClosePeriodFlow_("❌ ปิดรอบไม่สำเร็จ");
+
+            Swal.fire({
+              icon: "error",
+              title: "ปิดรอบไม่สำเร็จ",
+              text: err && err.message ? err.message : "เกิดข้อผิดพลาด",
+              confirmButtonText: "ตกลง"
+            });
+          })
+          .closeMonthlyPeriod(window.currentUser?.username);
+      }
+
+
+function buildClosePeriodResultHTML(msg) {
+  const text = String(msg || "-");
+  const isSuccess = text.startsWith("✅");
+
+  const lines = text
+    .split("\n")
+    .map(x => x.trim())
+    .filter(Boolean);
+
+  const list = lines.map(line => {
+    let cls = "text-slate-700";
+
+    if (line.startsWith("✅")) cls = "text-emerald-700 font-bold";
+    if (line.startsWith("❌") || line.startsWith("⛔")) cls = "text-red-700 font-bold";
+    if (line.startsWith("🗓️") || line.startsWith("📌") || line.startsWith("🔄") || line.startsWith("📅")) {
+      cls = "text-slate-700 font-medium";
+    }
+
+    return `
+      <div class="rounded-xl border border-slate-200 bg-white px-4 py-2 ${cls}">
+        ${dqEscapeHTML(line)}
+      </div>
+    `;
+  }).join("");
+
+  return `
+    <div class="text-left font-kanit space-y-3">
+      <div class="rounded-2xl ${isSuccess ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"} border p-4">
+        <div class="${isSuccess ? "text-emerald-700" : "text-amber-700"} font-bold">
+          ${isSuccess ? "ดำเนินการเรียบร้อย" : "โปรดตรวจสอบผลการทำงาน"}
+        </div>
+        <div class="text-xs ${isSuccess ? "text-emerald-600" : "text-amber-600"} mt-1">
+          ระบบแสดงผลสรุปหลังปิดรอบรายเดือน
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        ${list}
+      </div>
+    </div>
+  `;
+}
+
+
+function dqFieldThai(field) {
+  const map = {
+    ID: "รหัสตัวชี้วัด",
+    Task: "ชื่อตัวชี้วัด",
+    Department: "หมวดหมู่",
+    WorkGroup: "กลุ่มงาน",
+    Assignee: "ผู้รับผิดชอบ",
+    EvaluateMode: "รูปแบบการประเมิน",
+    TargetOperator: "เครื่องหมายเปรียบเทียบ",
+    TargetValue: "ค่าเป้าหมาย",
+    TargetText: "ข้อความเป้าหมาย",
+    LevelOrder: "ลำดับระดับ",
+    PassOutcomes: "ผลลัพธ์ที่ถือว่าผ่าน",
+    AchievementStatus: "สถานะผลประเมิน",
+    InputPeriodKey: "รหัสรอบรายงาน",
+    InputPeriodLabel: "ชื่อรอบรายงาน",
+    SubmittedAt: "เวลาที่ส่งข้อมูล",
+    SubmittedBy: "ผู้ส่งข้อมูล",
+    ResultText: "ข้อความผลลัพธ์"
+  };
+
+  return map[field] || field || "ไม่ระบุ";
+}
+
+
+function dqEscapeHTML(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+
+
+          function resetPeriodToCurrentMonthNow() {
+            Swal.fire({
+              title: "คืนรอบเป็นเดือนปัจจุบัน?",
+              html: `
+                <div class="text-left text-sm leading-6">
+                  <p>คำสั่งนี้ใช้หลังทดสอบปิดรอบหลายครั้ง แล้วรอบรายงานกระโดดไปเดือนอื่น</p>
+
+                  <p class="mt-2 font-semibold text-amber-700">ระบบจะทำเฉพาะ:</p>
+                  <ol class="list-decimal ml-5 mt-2">
+                    <li>ตั้ง ActivePeriod กลับเป็นเดือนปัจจุบัน</li>
+                    <li>ตั้ง LastClosedPeriod เป็นเดือนก่อนหน้า</li>
+                    <li>ไม่ Snapshot</li>
+                    <li>ไม่ Reset</li>
+                    <li>ไม่ลบข้อมูลใน TaskHistory</li>
+                  </ol>
+
+                  <div class="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3">
+                    <label class="block text-sm font-semibold text-amber-700 mb-1">
+                      เพื่อยืนยัน กรุณาพิมพ์คำว่า: คืนรอบ
+                    </label>
+                    <input id="confirmResetPeriodText"
+                      class="swal2-input"
+                      style="width:90%; margin: 0;"
+                      placeholder="พิมพ์คำว่า คืนรอบ">
+                  </div>
+                </div>
+              `,
+              icon: "warning",
+              showCancelButton: true,
+              confirmButtonText: "ยืนยันคืนรอบ",
+              cancelButtonText: "ยกเลิก",
+              confirmButtonColor: "#f59e0b",
+              focusConfirm: false,
+              preConfirm: () => {
+                const value = document.getElementById("confirmResetPeriodText")?.value?.trim();
+
+                if (value !== "คืนรอบ") {
+                  Swal.showValidationMessage("กรุณาพิมพ์คำว่า คืนรอบ ให้ถูกต้อง");
+                  return false;
+                }
+
+                return true;
+              }
+            }).then(result => {
+              if (!result.isConfirmed) return;
+
+              const msgEl = document.getElementById("cfg-msg");
+              if (msgEl) {
+                msgEl.textContent = "⏳ กำลังคืนรอบเป็นเดือนปัจจุบัน...";
+              }
+
+              Swal.fire({
+                title: "กำลังคืนรอบ...",
+                text: "กรุณารอสักครู่",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => Swal.showLoading()
+              });
+
+              google.script.run
+                .withSuccessHandler(msg => {
+                  if (msgEl) {
+                    msgEl.textContent = msg || "เสร็จสิ้น";
+                  }
+
+                  Swal.fire({
+                    icon: String(msg || "").startsWith("✅") ? "success" : "warning",
+                    title: "ผลการคืนรอบ",
+                    html: `<pre style="text-align:left;white-space:pre-wrap;font-family:Kanit, sans-serif;">${msg || "-"}</pre>`,
+                    confirmButtonText: "อ่านแล้ว / รีเฟรชหน้าจอ",
+                    allowOutsideClick: false
+                  }).then(() => {
+                    if (typeof fetchData === "function") {
+                      fetchData();
+                    }
+
+                    if (typeof refreshMonthlyChartSilent === "function") {
+                      refreshMonthlyChartSilent();
+                    }
+
+                    if (typeof renderMonthlyReportBanner === "function") {
+                      renderMonthlyReportBanner();
+                    }
+                  });
+                })
+                .withFailureHandler(err => {
+                  console.error(err);
+
+                  Swal.fire({
+                    icon: "error",
+                    title: "คืนรอบไม่สำเร็จ",
+                    text: err && err.message ? err.message : "เกิดข้อผิดพลาด"
+                  });
+
+                  if (msgEl) {
+                    msgEl.textContent = "❌ คืนรอบไม่สำเร็จ";
+                  }
+                })
+                .resetPeriodControlToCurrentMonth(window.currentUser?.username);
+            });
+          }
+
+
+          function openPreviousMonthInputPeriodNow() {
+            Swal.fire({
+              title: "เปิดรอบกรอกเดือนก่อนหน้า?",
+              html: `
+                <div class="text-left text-sm leading-6">
+                  <p>ใช้สำหรับช่วงวันที่ 1–5 ของเดือน</p>
+                  <p>เช่น วันที่ 1–5 มิ.ย. ให้เปิดรอบกรอกของ พ.ค.</p>
+
+                  <p class="mt-3 font-semibold text-sky-700">ระบบจะทำเฉพาะ:</p>
+                  <ol class="list-decimal ml-5 mt-2">
+                    <li>ตั้ง ActivePeriod เป็นเดือนก่อนหน้า</li>
+                    <li>ตั้ง LastClosedPeriod เป็นเดือนก่อนหน้านั้น</li>
+                    <li>ไม่ Snapshot</li>
+                    <li>ไม่ Reset</li>
+                    <li>ไม่ลบข้อมูลใน TaskData / TaskHistory</li>
+                  </ol>
+
+                  <div class="mt-4 rounded-lg bg-sky-50 border border-sky-200 p-3">
+                    <label class="block text-sm font-semibold text-sky-700 mb-1">
+                      เพื่อยืนยัน กรุณาพิมพ์คำว่า: เปิดรอบ
+                    </label>
+                    <input id="confirmOpenPreviousPeriodText"
+                      class="swal2-input"
+                      style="width:90%; margin: 0;"
+                      placeholder="พิมพ์คำว่า เปิดรอบ">
+                  </div>
+                </div>
+              `,
+              icon: "warning",
+              showCancelButton: true,
+              confirmButtonText: "ยืนยันเปิดรอบ",
+              cancelButtonText: "ยกเลิก",
+              confirmButtonColor: "#0284c7",
+              focusConfirm: false,
+              preConfirm: () => {
+                const value = document.getElementById("confirmOpenPreviousPeriodText")?.value?.trim();
+
+                if (value !== "เปิดรอบ") {
+                  Swal.showValidationMessage("กรุณาพิมพ์คำว่า เปิดรอบ ให้ถูกต้อง");
+                  return false;
+                }
+
+                return true;
+              }
+            }).then(result => {
+              if (!result.isConfirmed) return;
+
+              const msgEl = document.getElementById("cfg-msg");
+              if (msgEl) {
+                msgEl.textContent = "⏳ กำลังเปิดรอบกรอกเดือนก่อนหน้า...";
+              }
+
+              Swal.fire({
+                title: "กำลังเปิดรอบ...",
+                text: "กรุณารอสักครู่",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => Swal.showLoading()
+              });
+
+              google.script.run
+                .withSuccessHandler(msg => {
+                  if (msgEl) {
+                    msgEl.textContent = msg || "เสร็จสิ้น";
+                  }
+
+                  Swal.fire({
+                    icon: String(msg || "").startsWith("✅") ? "success" : "warning",
+                    title: "ผลการเปิดรอบ",
+                    html: `<pre style="text-align:left;white-space:pre-wrap;font-family:Kanit, sans-serif;">${msg || "-"}</pre>`,
+                    confirmButtonText: "อ่านแล้ว / รีเฟรชหน้าจอ",
+                    allowOutsideClick: false
+                  }).then(() => {
+                    if (typeof fetchData === "function") {
+                      fetchData();
+                    }
+
+                    if (typeof refreshMonthlyChartSilent === "function") {
+                      refreshMonthlyChartSilent();
+                    }
+
+                    if (typeof renderMonthlyReportBanner === "function") {
+                      renderMonthlyReportBanner();
+                    }
+                  });
+                })
+                .withFailureHandler(err => {
+                  console.error(err);
+
+                  Swal.fire({
+                    icon: "error",
+                    title: "เปิดรอบไม่สำเร็จ",
+                    text: err && err.message ? err.message : "เกิดข้อผิดพลาด"
+                  });
+
+                  if (msgEl) {
+                    msgEl.textContent = "❌ เปิดรอบไม่สำเร็จ";
+                  }
+                })
+                .openPreviousMonthInputPeriod(window.currentUser?.username);
+            });
+          }
+
+</script>
+<style>
+  .flatpickr-input:focus {
+    outline: none;
+    border-color: #f97316;
+    box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
+  }
+
+  /* ✅ สไตล์เฉพาะตารางผู้ใช้ */
+  #userPopupTableBody td,
+  #userPopupTableBody th {
+    border-right: 1px solid #e5e7eb;
+  }
+
+  #userPopupTableBody td:last-child,
+  #userPopupTableBody th:last-child {
+    border-right: none;
+  }
+
+
+  /* ✅ Scroll ตารางผู้ใช้ เมื่อเกินประมาณ 5 คน */
+.user-table-scroll {
+  max-height: 330px;
+  overflow-y: auto;
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+/* ✅ ให้หัวตารางค้างด้านบนตอน scroll */
+.user-table-scroll thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* ✅ กันหัวตารางโปร่งตอน sticky */
+.user-table-scroll thead tr {
+  background: #f1f5f9;
+}
+
+/* ✅ scrollbar ให้เข้าธีม */
+.user-table-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.user-table-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.user-table-scroll::-webkit-scrollbar-thumb {
+  background: #a5b4fc;
+  border-radius: 999px;
+}
+
+.user-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #818cf8;
+}
+
+/* Production system-management modal */
+#userModal {
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.kpi-admin-modal {
+  display: flex;
+  width: min(1080px, 96vw);
+  max-height: min(92vh, 920px);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  background: #f8fafc;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
+}
+
+.kpi-admin-modal__header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  border-bottom: 1px solid #dbe4ee;
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.kpi-admin-modal__eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.78;
+}
+
+.kpi-admin-modal__title {
+  margin-top: 2px;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.kpi-admin-modal__subtitle {
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.82;
+}
+
+.kpi-admin-modal__close {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.kpi-admin-modal__close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.kpi-admin-modal__body {
+  display: grid;
+  gap: 16px;
+  min-height: 0;
+  padding: 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.kpi-admin-section {
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.04);
+}
+
+.kpi-admin-section--period {
+  border-color: #bae6fd;
+}
+
+.kpi-admin-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.kpi-admin-section__kicker {
+  color: #0f766e;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.kpi-admin-section__title {
+  margin-top: 2px;
+  color: #0f172a;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.kpi-admin-section__desc {
+  max-width: 720px;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.kpi-admin-status-chip {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.kpi-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.kpi-admin-actions--primary {
+  align-items: stretch;
+}
+
+.kpi-admin-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 9px 14px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.kpi-admin-action:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.kpi-admin-action:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.kpi-admin-action--quality {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+}
+
+.kpi-admin-action--quality:hover:not(:disabled) {
+  background: #115e59;
+}
+
+.kpi-admin-action--danger {
+  background: #be123c;
+  border-color: #be123c;
+  color: #ffffff;
+}
+
+.kpi-admin-action--danger:hover:not(:disabled) {
+  background: #9f1239;
+}
+
+.kpi-admin-action--secondary {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+  color: #0369a1;
+}
+
+.kpi-admin-action--muted {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.kpi-admin-divider {
+  height: 1px;
+  margin: 16px 0;
+  background: #e2e8f0;
+}
+
+.kpi-admin-message {
+  min-height: 20px;
+  margin-top: 12px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.kpi-admin-user-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+}
+
+.kpi-admin-user-table th {
+  padding: 11px 12px;
+  border-bottom: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.kpi-admin-user-table td {
+  padding: 11px 12px !important;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.kpi-admin-user-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.kpi-admin-delete {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #fecdd3;
+  border-radius: 10px;
+  background: #fff1f2;
+  color: #be123c;
+  font-weight: 800;
+}
+
+.kpi-admin-delete:hover {
+  background: #ffe4e6;
+}
+
+.user-table-scroll {
+  max-height: 360px;
+  border-color: #dbe4ee;
+}
+
+.user-table-scroll::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+}
+
+.user-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+@media (max-width: 700px) {
+  #userModal {
+    align-items: flex-end;
+    padding: 8px;
+  }
+
+  .kpi-admin-modal {
+    width: 100%;
+    max-height: 96vh;
+    border-radius: 18px 18px 12px 12px;
+  }
+
+  .kpi-admin-modal__header,
+  .kpi-admin-modal__body,
+  .kpi-admin-section {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .kpi-admin-modal__subtitle {
+    display: none;
+  }
+
+  .kpi-admin-section__header {
+    flex-direction: column;
+  }
+
+  .kpi-admin-status-chip {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .kpi-admin-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-admin-action {
+    width: 100%;
+  }
+}
+
+
+
+</style>

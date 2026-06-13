@@ -1,0 +1,350 @@
+<!-- ✅ Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<!-- ✅ Popup Login -->
+
+<div class="popup" id="loginPopup">
+  <div class="popup-content">
+    <button class="close-btn" onclick="closeLogin()"><i class="fa-solid fa-xmark"></i></button>
+    <h3><i class="fa-solid fa-lock"></i> เข้าสู่ระบบ</h3>
+
+    <div class="input-group">
+      <i class="fa-solid fa-user icon"></i>
+      <input id="username" placeholder="ชื่อผู้ใช้">
+    </div>
+
+    <div class="input-group">
+      <i class="fa-solid fa-key icon"></i>
+      <input type="password" id="password" placeholder="รหัสผ่าน">
+    </div>
+
+    <div class="register-section">
+      <p>
+        ยังไม่มีบัญชี?
+        <a class="register-link" onclick="openRegister()">
+          <i class="fa-solid fa-user-plus"></i> ลงทะเบียน
+        </a>
+      </p>
+    </div><button class="login-btn" onclick="login()">เข้าสู่ระบบ</button>
+    <p id="msg"></p>
+  </div>
+</div>
+
+<!-- ✅ Popup Logout -->
+<div class="popup" id="logoutPopup">
+  <div class="popup-content logout">
+    <button class="close-btn" onclick="closeLogout()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <h3><i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ</h3>
+    <p class="logout-msg">คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?</p>
+
+    <div class="logout-actions">
+      <button class="cancel-btn" onclick="closeLogout()">❌ ยกเลิก</button>
+      <button class="confirm-btn" onclick="logout()">🚪 ออกจากระบบ</button>
+    </div>
+  </div>
+</div>
+<!-- ✅ Popup ลงทะเบียน -->
+<div class="popup" id="registerPopup">
+  <div class="popup-content">
+    <button class="close-btn" onclick="closeRegister()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <h3><i class="fa-solid fa-user-plus"></i> ลงทะเบียน</h3>
+
+    <div class="input-group">
+      <i class="fa-solid fa-id-card icon"></i>
+      <input id="reg_name" placeholder="ชื่อ-นามสกุล">
+    </div>
+
+    <div class="input-group">
+      <i class="fa-solid fa-user icon"></i>
+      <input id="reg_username" placeholder="ชื่อผู้ใช้ใหม่">
+    </div>
+
+    <div class="input-group">
+      <i class="fa-solid fa-key icon"></i>
+      <input type="password" id="reg_password" placeholder="รหัสผ่าน">
+    </div>
+
+    <button class="login-btn" onclick="registerUser()">สมัครสมาชิก</button>
+    <p id="registerMsg"></p>
+  </div>
+</div>
+
+
+
+<style>
+  /* ✅ พื้นหลัง popup */
+  .popup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: fadeIn 0.3s ease;
+  }
+
+  /* ✅ กล่อง popup หลัก */
+  .popup-content {
+    position: relative;
+    background: #fff;
+    padding: 30px 25px;
+    border-radius: 20px;
+    width: 320px;
+    box-sizing: border-box;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    text-align: center;
+    animation: fadeIn 0.25s ease;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #64748b;
+    cursor: pointer;
+  }
+
+  .popup-content h3 {
+    font-size: 20px;
+    color: #1e3a8a;
+    margin-bottom: 20px;
+    font-weight: 700;
+  }
+
+  /* ✅ ช่องกรอก */
+  .input-group {
+    position: relative;
+    margin: 12px auto;
+    width: 95%;
+  }
+
+  .input-group .icon {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    color: #64748b;
+    font-size: 15px;
+  }
+
+  .input-group input {
+    width: 100%;
+    padding: 10px 12px 10px 38px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    font-size: 14px;
+    transition: all 0.25s ease;
+    box-sizing: border-box;
+  }
+
+  .input-group input:focus {
+    border-color: #2563eb;
+    background: #fff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+
+  /* ✅ ปุ่มหลัก */
+  .login-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    margin-top: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+  }
+
+  .login-btn:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e3a8a);
+    transform: scale(1.02);
+  }
+
+  /* ✅ ข้อความแจ้งเตือน */
+  #msg,
+  #registerMsg {
+    color: red;
+    font-size: 13px;
+    margin-top: 10px;
+  }
+
+  /* ✅ ปุ่ม Logout */
+  .logout-btn {
+    display: none;
+    /* เริ่มต้นซ่อน */
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    color: white;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+    letter-spacing: 0.3px;
+  }
+
+  /* ✅ เมื่อเอาเมาส์วาง */
+  .logout-btn:hover {
+    background: linear-gradient(135deg, #dc2626, #991b1b);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 14px rgba(239, 68, 68, 0.35);
+  }
+
+  /* ✅ เมื่อกดคลิก */
+  .logout-btn:active {
+    transform: scale(0.98);
+  }
+
+  /* ✅ เพิ่มแอนิเมชันเล็กน้อยเวลาแสดงปุ่ม */
+  .logout-btn.show {
+    display: inline-block;
+    animation: fadeIn 0.3s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+
+  /* ✅ Popup logout */
+  .popup-content.logout {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+    padding: 30px 25px;
+    border-radius: 20px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    transform: scale(0.95);
+    animation: popupIn 0.3s ease forwards;
+  }
+
+  .popup-content.logout h3 {
+    color: #dc2626;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .logout-msg {
+    color: #475569;
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .logout-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .cancel-btn,
+  .confirm-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.25s ease;
+  }
+
+  .cancel-btn {
+    background: #e2e8f0;
+    color: #334155;
+  }
+
+  .cancel-btn:hover {
+    background: #cbd5e1;
+  }
+
+  .confirm-btn {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    color: white;
+  }
+
+  .confirm-btn:hover {
+    transform: scale(1.05);
+    background: linear-gradient(135deg, #dc2626, #991b1b);
+  }
+
+  /* ✅ ลิงก์ลงทะเบียน */
+  .register-section {
+    margin-top: 15px;
+    text-align: center;
+    font-size: 14px;
+    color: #475569;
+  }
+
+  .register-link {
+    display: inline-block;
+    background: #fff;
+    color: #2563eb;
+    border: 1.5px solid #2563eb;
+    border-radius: 10px;
+    padding: 6px 12px;
+    margin-left: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.25s ease;
+    box-shadow: 0 3px 8px rgba(37, 99, 235, 0.15);
+  }
+
+  .register-link:hover {
+    background: #2563eb;
+    color: #fff;
+    transform: translateY(-2px);
+  }
+
+  /* ✅ animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes popupIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+</style>
