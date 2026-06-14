@@ -5951,14 +5951,14 @@ body {
                     data-quick-role="superadmin"
                     onclick="previewClosePeriodDataQualityOnly()"
                     class="kpi-action-btn kpi-action-btn--warning hidden">
-                    ตรวจคุณภาพข้อมูลก่อนปิดรอบ
+                    ตรวจข้อมูลก่อนปิดรอบ
                   </button>
 
                   <button type="button"
                     data-quick-role="superadmin"
-                    onclick="closeMonthlyPeriodNow()"
+                    onclick="focusMonthlyCloseManagementConsole()"
                     class="kpi-action-btn kpi-action-btn--danger hidden">
-                    ปิดรอบรายเดือน
+                    ไปที่คอนโซลปิดรอบ
                   </button>
 
                   <button type="button"
@@ -5974,9 +5974,9 @@ body {
                 <div class="close-console__header">
                   <div>
                     <div class="close-console__eyebrow">Monthly Close Management</div>
-                    <h2 class="close-console__title">Console ปิดรอบรายเดือน</h2>
+                    <h2 class="close-console__title">คอนโซลปิดรอบรายเดือน</h2>
                     <p id="monthlyCloseConsoleIntro" class="close-console__desc">
-                      ใช้ตรวจความพร้อมก่อน snapshot และติดตามผลหลังปิดรอบรายเดือนสำหรับผู้ดูแลระบบ
+                      ใช้ตรวจความพร้อม ทดลองปิดรอบแบบไม่บันทึกข้อมูล และติดตามผลหลังปิดรอบสำหรับผู้ดูแลระบบ
                     </p>
                   </div>
 
@@ -5985,31 +5985,31 @@ body {
                       id="monthlyCloseRefreshBtn"
                       onclick="loadMonthlyCloseManagementConsole({ force: true, announce: true })"
                       class="kpi-action-btn kpi-action-btn--secondary">
-                      Refresh Console
+                      โหลดสถานะล่าสุด
                     </button>
 
                     <button type="button"
                       id="monthlyCloseDryRunBtn"
                       onclick="runMonthlyCloseDryRunAction()"
                       class="kpi-action-btn kpi-action-btn--warning">
-                      Dry Run Snapshot
+                      ตรวจความพร้อมก่อนปิดรอบ
                     </button>
 
                     <button type="button"
                       id="monthlyCloseExecuteBtn"
                       onclick="runMonthlyClosePeriodAction()"
                       class="kpi-action-btn kpi-action-btn--danger">
-                      Close Period
+                      ปิดรอบจริง
                     </button>
                   </div>
                 </div>
 
                 <div id="monthlyCloseConsoleRoleHint" class="close-console__hint">
-                  กำลังเตรียม Monthly Close Console...
+                  กำลังเตรียมคอนโซลปิดรอบ...
                 </div>
 
                 <div id="monthlyCloseExecuteHint" class="close-console__hint close-console__hint--soft">
-                  กำลังประเมินเงื่อนไขของปุ่ม Close Period...
+                  กำลังตรวจว่าปิดรอบได้หรือยัง...
                 </div>
 
                 <div class="close-console__grid">
@@ -6030,7 +6030,7 @@ body {
                   <section class="close-console__panel">
                     <div class="close-console__panel-head">
                       <div>
-                        <div class="close-console__panel-kicker">Snapshot Readiness</div>
+                        <div class="close-console__panel-kicker">ความพร้อมข้อมูล</div>
                         <h3 class="close-console__panel-title">ความพร้อมก่อนปิดรอบ</h3>
                       </div>
                       <div id="monthlyCloseQualityBadges" class="close-console__badge-row"></div>
@@ -6053,7 +6053,7 @@ body {
                   <section class="close-console__panel">
                     <div class="close-console__panel-head">
                       <div>
-                        <div class="close-console__panel-kicker">Exception Queue</div>
+                        <div class="close-console__panel-kicker">รายการที่ต้องแก้ไข</div>
                         <h3 class="close-console__panel-title">รายการที่ต้องตรวจสอบก่อนปิดรอบ</h3>
                       </div>
                     </div>
@@ -7961,13 +7961,13 @@ body {
       }
 
       if (!monthlyCloseConsoleState.hasExecutedDryRun) {
-        return "ปุ่มนี้ปิดไว้เพราะยังไม่ได้กด Dry Run Snapshot ในรอบปัจจุบัน";
+        return "ยังปิดรอบไม่ได้ เพราะต้องตรวจความพร้อมก่อนในรอบปัจจุบัน";
       }
 
       if (monthlyCloseConsoleState.lastDryRunBackendOk !== true) {
-        return "ปุ่มนี้ปิดไว้เพราะ Dry Run ล่าสุดมี backend error (" +
+        return "ยังปิดรอบไม่ได้ เพราะการตรวจความพร้อมล่าสุดไม่สำเร็จ (" +
           (monthlyCloseConsoleState.lastDryRunSource || "unknown") +
-          "): " + (monthlyCloseConsoleState.lastDryRunErrorText || "กรุณาตรวจ popup และ Exception Queue");
+          "): " + (monthlyCloseConsoleState.lastDryRunErrorText || "กรุณาตรวจหน้าต่างแจ้งเตือนและรายการที่ต้องแก้ไข");
       }
 
       const summary = normalizeMonthlyCloseResponseSummary(monthlyCloseConsoleState.lastDryRunSummary || monthlyCloseConsoleState.data?.summary || {});
@@ -7978,10 +7978,10 @@ body {
       const missingEvaluateMode = Number(summary.missingEvaluateMode || data?.summary?.missingEvaluateMode || 0);
 
       if (warningCount > 0 || criticalCount > 0) {
-        return "ยังไม่พร้อมปิดรอบเพราะมี readiness warning: " +
+        return "ยังไม่พร้อมปิดรอบ เพราะยังมีข้อมูลที่ควรแก้ไข: " +
           "ยังไม่ส่งข้อมูล " + notSubmitted + " รายการ, " +
-          "ยังไม่ได้ตั้งค่า ReportingFrequency " + missingReportingFrequency + " รายการ, " +
-          "ยังไม่ได้ตั้งค่า EvaluateMode " + missingEvaluateMode + " รายการ";
+          "ยังไม่ได้ตั้งค่ารอบรายงาน " + missingReportingFrequency + " รายการ, " +
+          "ยังไม่ได้ตั้งค่าวิธีประเมินผล " + missingEvaluateMode + " รายการ";
       }
 
       const blockerSummary = data?.blockerSummary || {};
@@ -7991,7 +7991,7 @@ body {
 
       if (data?.quality?.canClose !== true) {
         if (topCategories.length) {
-          return "ปุ่มนี้ปิดไว้เพราะยังมี readiness issue: " +
+          return "ยังปิดรอบไม่ได้ เพราะยังมีข้อมูลที่ต้องแก้ไข: " +
             topCategories
               .slice(0, 3)
               .map(function(item) {
@@ -8000,7 +8000,7 @@ body {
               .join(", ");
         }
 
-        return "ปุ่มนี้ปิดไว้เพราะยังมี critical issue ก่อนปิดรอบ";
+        return "ยังปิดรอบไม่ได้ เพราะยังมีปัญหาสำคัญก่อนปิดรอบ";
       }
 
       return "พร้อมปิดรอบรายเดือน";
@@ -8058,7 +8058,7 @@ body {
           (safeDebugFunction ? '<div class="mt-1"><strong>Function:</strong> ' + escapeHTML(safeDebugFunction) + '</div>' : '') +
           (safeDebugStep ? '<div class="mt-1"><strong>Step:</strong> ' + escapeHTML(safeDebugStep) + '</div>' : '') +
           (stackPreview ? '<div class="mt-1"><strong>Debug:</strong> ' + escapeHTML(stackPreview) + '</div>' : '') +
-          '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ตรวจ Exception Queue ด้านล่าง และทบทวน blocker categories ก่อนลองใหม่</div>' +
+          '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ตรวจรายการที่ต้องแก้ไขด้านล่าง แล้วลองใหม่อีกครั้ง</div>' +
           buildMonthlyCloseBlockerListHtml(blockerSummary) +
         '</div>';
     }
@@ -8071,13 +8071,13 @@ body {
       return '' +
         '<div class="text-left text-sm leading-7 text-slate-700">' +
           '<div><strong>สถานะ:</strong> ยังไม่พร้อมปิดรอบ</div>' +
-          '<div class="mt-1"><strong>Critical:</strong> ' + escapeHTML(String(data?.quality?.criticalCount || 0)) + ' | <strong>Warning:</strong> ' + escapeHTML(String(data?.quality?.warningCount || 0)) + '</div>' +
+          '<div class="mt-1"><strong>ปัญหาสำคัญ:</strong> ' + escapeHTML(String(data?.quality?.criticalCount || 0)) + ' | <strong>ข้อควรแก้ไข:</strong> ' + escapeHTML(String(data?.quality?.warningCount || 0)) + '</div>' +
           buildMonthlyCloseBlockerListHtml(blockerSummary) +
-          '<div class="mt-3"><strong>ตัวอย่างรายการ critical:</strong></div>' +
-          buildMonthlyCloseIssuePreviewHtml(criticalIssues, "ยังไม่พบรายละเอียด critical issue") +
-          '<div class="mt-3"><strong>ตัวอย่าง warning:</strong></div>' +
-          buildMonthlyCloseIssuePreviewHtml(warnings, "ยังไม่พบรายละเอียด warning") +
-          '<div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">ตรวจ Exception Queue ด้านล่างเพื่อดู KPI ที่ต้องแก้ก่อนปิดรอบ</div>' +
+          '<div class="mt-3"><strong>ตัวอย่างปัญหาสำคัญ:</strong></div>' +
+          buildMonthlyCloseIssuePreviewHtml(criticalIssues, "ยังไม่พบรายละเอียดปัญหาสำคัญ") +
+          '<div class="mt-3"><strong>ตัวอย่างข้อควรแก้ไข:</strong></div>' +
+          buildMonthlyCloseIssuePreviewHtml(warnings, "ยังไม่พบรายละเอียดข้อควรแก้ไข") +
+          '<div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">ดูรายการที่ต้องแก้ไขด้านล่างก่อนปิดรอบ</div>' +
         '</div>';
     }
 
@@ -8104,11 +8104,11 @@ function updateMonthlyCloseConsoleRoleState() {
 
       if (hint) {
         if (role === "admin") {
-          hint.textContent = "สิทธิ์ admin ดูข้อมูลและทำ Dry Run ได้ แต่การปิดรอบจริงยังจำกัดเฉพาะ superadmin ตามระบบเดิม";
+          hint.textContent = "บัญชี admin ดูข้อมูลและตรวจความพร้อมได้ แต่การปิดรอบจริงทำได้เฉพาะ superadmin";
         } else if (quality && quality.canClose === true) {
-          hint.textContent = "สถานะปัจจุบันพร้อมปิดรอบ หากตรวจสอบ Dry Run ล่าสุดแล้วถูกต้อง สามารถดำเนินการ Close Period ได้";
+          hint.textContent = "สถานะปัจจุบันพร้อมปิดรอบ หากตรวจความพร้อมล่าสุดแล้วถูกต้อง สามารถกดปิดรอบจริงได้";
         } else {
-          hint.textContent = "ตรวจสอบ Readiness และ Exception Queue ก่อนปิดรอบ ระบบจะไม่แนะนำให้ปิดรอบหากยังมี critical issue";
+          hint.textContent = "ตรวจความพร้อมและรายการที่ต้องแก้ไขก่อนปิดรอบ ระบบจะไม่แนะนำให้ปิดรอบถ้ายังมีปัญหาสำคัญ";
         }
       }
 
@@ -8152,7 +8152,7 @@ function updateMonthlyCloseConsoleRoleState() {
           : "warn";
 
       readyBadge.className = getMonthlyCloseStatusBadgeClass(badgeType);
-      readyBadge.textContent = quality.canClose === true ? "Ready To Close" : "Needs Review";
+      readyBadge.textContent = quality.canClose === true ? "พร้อมปิดรอบ" : "ต้องตรวจสอบ";
 
       body.innerHTML = [
         {
@@ -8207,15 +8207,15 @@ function updateMonthlyCloseConsoleRoleState() {
         : [];
 
       const cards = [
-        ["Due", readiness.due, "ถึงรอบรายงาน"],
-        ["Not Due", readiness.notDue, "ยังไม่ถึงรอบ"],
-        ["Submitted", readiness.submitted, "พร้อมเข้า snapshot"],
-        ["Not Submitted", readiness.notSubmitted, "ต้องติดตามก่อนปิดรอบ"],
-        ["Evaluable", readiness.evaluable, "ประเมินผลได้ในรอบนี้"],
-        ["Not Evaluable", readiness.notEvaluable, "ส่งแล้วแต่ยังสรุปผลไม่ได้"],
-        ["Missing EvaluateMode", readiness.missingEvaluateMode, "ควรกำหนดรูปแบบประเมิน"],
-        ["Missing Target Rule", readiness.missingTargetRule, "กติกาเป้าหมายยังไม่ครบ"],
-        ["Missing ReportingFrequency", readiness.missingReportingFrequency, "ยังไม่ได้กำหนดรอบรายงาน"]
+        ["ถึงรอบรายงาน", readiness.due, "ควรส่งข้อมูลในรอบนี้"],
+        ["ยังไม่ถึงรอบ", readiness.notDue, "ยังไม่ต้องส่ง"],
+        ["ส่งข้อมูลแล้ว", readiness.submitted, "พร้อมบันทึกเข้าประวัติ"],
+        ["ยังไม่ส่งข้อมูล", readiness.notSubmitted, "ต้องติดตามก่อนปิดรอบ"],
+        ["ประเมินผลได้", readiness.evaluable, "มีข้อมูลพอสำหรับสรุปผล"],
+        ["ยังประเมินไม่ได้", readiness.notEvaluable, "ส่งแล้วแต่ยังสรุปผลไม่ได้"],
+        ["ยังไม่ได้ตั้งค่าวิธีประเมินผล", readiness.missingEvaluateMode, "ควรกำหนดรูปแบบประเมิน"],
+        ["ยังตั้งกติกาเป้าหมายไม่ครบ", readiness.missingTargetRule, "ควรกำหนดเป้าหมายให้ครบ"],
+        ["ยังไม่ได้ตั้งค่ารอบรายงาน", readiness.missingReportingFrequency, "ควรกำหนดรอบรายงาน"]
       ];
 
       metricsEl.innerHTML = cards.map(function(card) {
@@ -8229,25 +8229,25 @@ function updateMonthlyCloseConsoleRoleState() {
 
       badgesEl.innerHTML = '' +
         '<span class="' + getMonthlyCloseInfoBadgeClass(quality.canClose === true ? "success" : "danger") + '">' +
-          (quality.canClose === true ? "Ready" : "Critical " + Number(quality.criticalCount || 0)) +
+          (quality.canClose === true ? "พร้อม" : "ปัญหาสำคัญ " + Number(quality.criticalCount || 0)) +
         '</span>' +
-        '<span class="' + getMonthlyCloseInfoBadgeClass("warning") + '">Warning ' + Number(quality.warningCount || 0) + '</span>' +
-        '<span class="' + getMonthlyCloseInfoBadgeClass("") + '">Dry Run ' + Number(preview.total || 0) + ' KPI</span>';
+        '<span class="' + getMonthlyCloseInfoBadgeClass("warning") + '">ข้อควรแก้ไข ' + Number(quality.warningCount || 0) + '</span>' +
+        '<span class="' + getMonthlyCloseInfoBadgeClass("") + '">ตรวจแล้ว ' + Number(preview.total || 0) + ' KPI</span>';
 
       const fieldText = topFields.length
         ? topFields.map(function(item) {
             return escapeHTML(item.field + " (" + item.count + ")");
           }).join(", ")
-        : "ไม่พบ issue field เด่น";
+        : "ไม่พบช่องข้อมูลที่มีปัญหาเด่น";
 
       notesEl.innerHTML =
         '<div><strong>คำแนะนำ:</strong> ' +
           (quality.canClose === true
-            ? 'Dry Run ล่าสุดไม่พบ critical issue และสามารถปิดรอบได้'
-            : 'ควรจัดการ critical issue ใน Exception Queue ให้เรียบร้อยก่อนปิดรอบ') +
+            ? 'การตรวจล่าสุดไม่พบปัญหาสำคัญ และสามารถปิดรอบได้'
+            : 'ควรจัดการปัญหาสำคัญในรายการที่ต้องแก้ไขให้เรียบร้อยก่อนปิดรอบ') +
         '</div>' +
-        '<div class="mt-1"><strong>Field ที่พบปัญหาบ่อย:</strong> ' + fieldText + '</div>' +
-        '<div class="mt-1"><strong>หมายเหตุ:</strong> Dry Run ไม่เขียนข้อมูลลง TaskHistory</div>';
+        '<div class="mt-1"><strong>ช่องข้อมูลที่พบปัญหาบ่อย:</strong> ' + fieldText + '</div>' +
+        '<div class="mt-1"><strong>หมายเหตุ:</strong> การตรวจความพร้อมไม่บันทึกข้อมูลลง TaskHistory</div>';
     }
 
     function buildMonthlyCloseWarningsQueueFromResponse_(warnings) {
@@ -8272,8 +8272,8 @@ function updateMonthlyCloseConsoleRoleState() {
         groups: {
           warnings: {
             key: "warnings",
-            title: "Readiness warnings",
-            description: "รายการเตือนจาก Dry Run",
+            title: "ข้อควรแก้ไข",
+            description: "รายการเตือนจากการตรวจความพร้อม",
             count: list.length,
             items: items
           }
@@ -8367,17 +8367,17 @@ function updateMonthlyCloseConsoleRoleState() {
       }
 
       const metrics = [
-        ["Snapshot Success", result.snapshotCount, "จำนวนรายการที่เขียนลง TaskHistory"],
-        ["Not Due", result.notDueCount, "ข้ามเพราะยังไม่ถึงรอบรายงาน"],
-        ["Not Submitted", result.notSubmittedCount, "ถึงรอบแต่ยังไม่ส่งข้อมูล"],
-        ["Not Evaluable", result.notEvaluableCount, "ส่งแล้วแต่ยังสรุปผลไม่ได้"],
-        ["Duplicate Skipped", result.duplicateSkippedCount, "ระบบข้ามรายการซ้ำ"],
-        ["Verified", result.verifiedCount, "จำนวนที่ตรวจพบหลังเขียนจริง"]
+        ["บันทึกสำเร็จ", result.snapshotCount, "จำนวนรายการที่เขียนลง TaskHistory"],
+        ["ยังไม่ถึงรอบ", result.notDueCount, "ข้ามเพราะยังไม่ถึงรอบรายงาน"],
+        ["ยังไม่ส่งข้อมูล", result.notSubmittedCount, "ถึงรอบแต่ยังไม่ส่งข้อมูล"],
+        ["ยังประเมินไม่ได้", result.notEvaluableCount, "ส่งแล้วแต่ยังสรุปผลไม่ได้"],
+        ["ข้ามรายการซ้ำ", result.duplicateSkippedCount, "ระบบข้ามรายการซ้ำ"],
+        ["ตรวจพบหลังบันทึก", result.verifiedCount, "จำนวนที่ตรวจพบหลังเขียนจริง"]
       ];
 
       container.innerHTML =
         '<div class="' + getMonthlyCloseStatusBadgeClass(result.success === true ? "ready" : "danger") + '">' +
-          escapeHTML(result.success === true ? "Close Period Success" : "Close Period Failed") +
+          escapeHTML(result.success === true ? "ปิดรอบสำเร็จ" : "ปิดรอบไม่สำเร็จ") +
         '</div>' +
         '<div class="close-console__result-metrics">' +
           metrics.map(function(item) {
@@ -8543,7 +8543,7 @@ function updateMonthlyCloseConsoleRoleState() {
           const backendOk = !!(res && res.ok === true && res.success === true);
           const responseMessage = formatMonthlyCloseErrorMessage(
             res && (res.rawError?.message || res.message || res.debug?.errorMessage || res.debug || res),
-            "Dry Run ไม่สำเร็จ"
+            "ตรวจความพร้อมไม่สำเร็จ"
           );
           const responseSource = !backendOk && res?.debug?.functionName
             ? res.debug.functionName
@@ -8576,10 +8576,10 @@ function updateMonthlyCloseConsoleRoleState() {
             if (typeof Swal !== "undefined") {
               Swal.fire({
                 icon: "error",
-                title: "Dry Run ไม่สำเร็จ",
+                title: "ตรวจความพร้อมไม่สำเร็จ",
                 confirmButtonText: "ตกลง",
                 html: buildMonthlyCloseFailureDebugHtml(
-                  "Dry Run Snapshot ไม่สำเร็จ",
+                  "ตรวจความพร้อมก่อนปิดรอบไม่สำเร็จ",
                   responseMessage,
                   responseSource,
                   res?.rawError || res?.debug || null,
@@ -8599,22 +8599,22 @@ function updateMonthlyCloseConsoleRoleState() {
             Swal.fire({
               icon: isReadinessWarning ? "warning" : "success",
               title: isReadinessWarning
-                ? "Dry Run สำเร็จ แต่พบข้อควรแก้ไข"
-                : "Dry Run สำเร็จ",
+                ? "ตรวจความพร้อมเสร็จแล้ว แต่พบข้อควรแก้ไข"
+                : "ตรวจความพร้อมเสร็จแล้ว",
               confirmButtonText: "ตกลง",
               html:
                 '<div class="text-left text-sm leading-7 text-slate-700">' +
                   '<div><strong>รอบ:</strong> ' + escapeHTML(summary.periodLabel || res.consoleData.periodStatus?.currentPeriodLabel || "-") + '</div>' +
-                  '<div><strong>Due:</strong> ' + escapeHTML(String(summary.due || 0)) + ' รายการ</div>' +
-                  '<div><strong>จะ snapshot:</strong> ' + escapeHTML(String(summary.submitted || 0)) + ' รายการ</div>' +
-                  '<div><strong>NotSubmitted:</strong> ' + escapeHTML(String(summary.notSubmitted || 0)) + ' รายการ</div>' +
-                  '<div><strong>Missing ReportingFrequency:</strong> ' + escapeHTML(String(summary.missingReportingFrequency || 0)) + ' รายการ</div>' +
-                  '<div><strong>Missing EvaluateMode:</strong> ' + escapeHTML(String(summary.missingEvaluateMode || 0)) + ' รายการ</div>' +
-                  '<div><strong>Critical:</strong> ' + escapeHTML(String(criticalCount || 0)) + ' | <strong>Warning:</strong> ' + escapeHTML(String(warningCount || 0)) + '</div>' +
+                  '<div><strong>ถึงรอบรายงาน:</strong> ' + escapeHTML(String(summary.due || 0)) + ' รายการ</div>' +
+                  '<div><strong>จะบันทึกเข้าประวัติ:</strong> ' + escapeHTML(String(summary.submitted || 0)) + ' รายการ</div>' +
+                  '<div><strong>ยังไม่ส่งข้อมูล:</strong> ' + escapeHTML(String(summary.notSubmitted || 0)) + ' รายการ</div>' +
+                  '<div><strong>ยังไม่ได้ตั้งค่ารอบรายงาน:</strong> ' + escapeHTML(String(summary.missingReportingFrequency || 0)) + ' รายการ</div>' +
+                  '<div><strong>ยังไม่ได้ตั้งค่าวิธีประเมินผล:</strong> ' + escapeHTML(String(summary.missingEvaluateMode || 0)) + ' รายการ</div>' +
+                  '<div><strong>ปัญหาสำคัญ:</strong> ' + escapeHTML(String(criticalCount || 0)) + ' | <strong>ข้อควรแก้ไข:</strong> ' + escapeHTML(String(warningCount || 0)) + '</div>' +
                   '<div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">' +
                     (isReadinessWarning
-                      ? 'ตรวจ Exception Queue ด้านล่างก่อนปิดรอบ'
-                      : 'Dry Run นี้ไม่เขียนข้อมูลลง TaskHistory') +
+                      ? 'ตรวจรายการที่ต้องแก้ไขด้านล่างก่อนปิดรอบ'
+                      : 'การตรวจนี้ไม่บันทึกข้อมูลลง TaskHistory') +
                   '</div>' +
                 '</div>'
             });
@@ -8627,17 +8627,17 @@ function updateMonthlyCloseConsoleRoleState() {
           monthlyCloseConsoleState.hasExecutedDryRun = true;
           monthlyCloseConsoleState.lastDryRunCompletedAt = Date.now();
           monthlyCloseConsoleState.lastDryRunBackendOk = false;
-          monthlyCloseConsoleState.lastDryRunErrorText = formatMonthlyCloseErrorMessage(err, "Dry Run ไม่สำเร็จ");
+          monthlyCloseConsoleState.lastDryRunErrorText = formatMonthlyCloseErrorMessage(err, "ตรวจความพร้อมไม่สำเร็จ");
           monthlyCloseConsoleState.lastDryRunSource = err?.name || "google.script.run.withFailureHandler";
           updateMonthlyCloseConsoleRoleState();
           if (typeof Swal !== "undefined") {
             Swal.fire({
               icon: "error",
-              title: "Dry Run ไม่สำเร็จ",
+              title: "ตรวจความพร้อมไม่สำเร็จ",
               confirmButtonText: "ตกลง",
               html: buildMonthlyCloseFailureDebugHtml(
-                "Dry Run Snapshot ไม่สำเร็จ",
-                formatMonthlyCloseErrorMessage(err, "Dry Run ไม่สำเร็จ"),
+                "ตรวจความพร้อมก่อนปิดรอบไม่สำเร็จ",
+                formatMonthlyCloseErrorMessage(err, "ตรวจความพร้อมไม่สำเร็จ"),
                 err?.name || "google.script.run.withFailureHandler",
                 err,
                 monthlyCloseConsoleState.data?.blockerSummary || null,
@@ -8674,7 +8674,7 @@ function updateMonthlyCloseConsoleRoleState() {
           Swal.fire({
             icon: "warning",
             title: hasReadinessWarning
-              ? "ยังไม่พร้อมปิดรอบเพราะมี readiness warning"
+              ? "ยังไม่พร้อมปิดรอบ เพราะยังมีข้อมูลที่ควรแก้ไข"
               : "ยังไม่พร้อมปิดรอบ",
             confirmButtonText: "ตกลง",
             html: buildMonthlyCloseNotReadyHtml(currentData)
@@ -8696,15 +8696,15 @@ function updateMonthlyCloseConsoleRoleState() {
         icon: "warning",
         title: "ยืนยันปิดรอบรายเดือน",
         showCancelButton: true,
-        confirmButtonText: "ยืนยัน Close Period",
+        confirmButtonText: "ยืนยันปิดรอบจริง",
         cancelButtonText: "ยกเลิก",
         html:
           '<div class="text-left text-sm leading-7 text-slate-700">' +
             '<div><strong>รอบที่จะปิด:</strong> ' + escapeHTML(periodLabel) + '</div>' +
-            '<div><strong>Submitted:</strong> ' + escapeHTML(String(currentData?.preview?.submitted || 0)) + ' รายการ</div>' +
-            '<div><strong>NotDue:</strong> ' + escapeHTML(String(currentData?.preview?.notDue || 0)) + ' รายการ</div>' +
-            '<div><strong>NotSubmitted:</strong> ' + escapeHTML(String(currentData?.preview?.notSubmitted || 0)) + ' รายการ</div>' +
-            '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ระบบจะ snapshot, reset รอบเดิม และเลื่อนไปยังรอบถัดไปทันที</div>' +
+            '<div><strong>ส่งข้อมูลแล้ว:</strong> ' + escapeHTML(String(currentData?.preview?.submitted || 0)) + ' รายการ</div>' +
+            '<div><strong>ยังไม่ถึงรอบ:</strong> ' + escapeHTML(String(currentData?.preview?.notDue || 0)) + ' รายการ</div>' +
+            '<div><strong>ยังไม่ส่งข้อมูล:</strong> ' + escapeHTML(String(currentData?.preview?.notSubmitted || 0)) + ' รายการ</div>' +
+            '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ระบบจะบันทึกข้อมูลรอบนี้ ล้างค่ารายเดือนเดิม และเลื่อนไปยังรอบถัดไปทันที</div>' +
           '</div>'
       }).then(function(result) {
         if (!result.isConfirmed) return;
@@ -8745,7 +8745,7 @@ function updateMonthlyCloseConsoleRoleState() {
 
             Swal.fire(
               "ปิดรอบไม่สำเร็จ",
-              formatMonthlyCloseErrorMessage(res, "Close Period ไม่สำเร็จ"),
+              formatMonthlyCloseErrorMessage(res, "ปิดรอบไม่สำเร็จ"),
               "error"
             );
           })
@@ -8755,7 +8755,7 @@ function updateMonthlyCloseConsoleRoleState() {
             console.error("MonthlyCloseConsole close failure:", err);
             Swal.fire(
               "ปิดรอบไม่สำเร็จ",
-              formatMonthlyCloseErrorMessage(err, "Close Period ไม่สำเร็จ"),
+              formatMonthlyCloseErrorMessage(err, "ปิดรอบไม่สำเร็จ"),
               "error"
             );
           })
