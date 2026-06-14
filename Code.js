@@ -140,8 +140,22 @@ const HISTORY_HEADERS = [
   'AchievementText'
 ];
 
-const ALERT_CHAT_ID = -5230274486;
-const BOT_TOKEN = "8134250354:AAFCjt7PIVfCEBvKDOmT3mPZL_Ryn7-xIHE";
+const TELEGRAM_BOT_TOKEN_PROPERTY_KEY = "BOT_TOKEN";
+const TELEGRAM_ALERT_CHAT_ID_PROPERTY_KEY = "ALERT_CHAT_ID";
+
+function getTelegramConfig_() {
+  const props = PropertiesService.getScriptProperties();
+  return {
+    botToken: String(props.getProperty(TELEGRAM_BOT_TOKEN_PROPERTY_KEY) || "").trim(),
+    alertChatId: String(props.getProperty(TELEGRAM_ALERT_CHAT_ID_PROPERTY_KEY) || "").trim()
+  };
+}
+
+function sendTelegramAlert_(message) {
+  const config = getTelegramConfig_();
+  if (!config.alertChatId) return;
+  sendMessage(config.alertChatId, message);
+}
 /* function doGet() {
   return HtmlService.createHtmlOutputFromFile('index');
 } */
@@ -1201,7 +1215,6 @@ function getAllUsers(currentUsername) {
       };
     });
 
-    Logger.log(users);
     return JSON.stringify(users); // ✅ ส่งออกเป็น string
   } catch (err) {
     Logger.log("❌ Error in getAllUsers: " + err);
@@ -3332,7 +3345,7 @@ if (!mode) {
               summaryText +
               "\n\n🔗 เปิดดูได้ที่:\n" + fileUrl;
 
-            sendMessage(ALERT_CHAT_ID, message);
+            sendTelegramAlert_(message);
             telegramSent = true;
           }
 
@@ -4676,7 +4689,10 @@ function doPost(e) {
 function sendMessage(chatId, text) {
   if (!text) return;
 
-  const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+  const config = getTelegramConfig_();
+  if (!config.botToken || !chatId) return;
+
+  const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
 
   const payload = {
     chat_id: chatId,
@@ -4712,12 +4728,10 @@ function sendLongMessage(chatId, text) {
 
 
     // --- ส่วนการตั้งค่า (ตรวจสอบว่ามีอยู่ด้านบนสุดของไฟล์แล้วหรือยัง) ---
-// const ALERT_CHAT_ID = 'ใส่ ID ตรงนี้'; 
-// const BOT_TOKEN = 'ใส่ TOKEN ตรงนี้';
 
 
 function notifyGroup(message) {
-  sendMessage(ALERT_CHAT_ID, message);
+  sendTelegramAlert_(message);
 }
 
 function testNotify() {
@@ -4757,7 +4771,7 @@ function notifySnapshotFromSheet(periodLabel) {
   const rows = getHistorySummaryForPeriod(periodLabel);
 
   if (rows.length === 0) {
-    sendMessage(ALERT_CHAT_ID, "❌ ไม่พบข้อมูล Snapshot สำหรับงวด: " + periodLabel);
+    sendTelegramAlert_("❌ ไม่พบข้อมูล Snapshot สำหรับงวด: " + periodLabel);
     return;
   }
 
@@ -4780,7 +4794,7 @@ function notifySnapshotFromSheet(periodLabel) {
 
     const message = (i === 0 ? header : "📌 <b>ต่อ</b>\n\n") + body;
 
-    sendMessage(ALERT_CHAT_ID, message);
+    sendTelegramAlert_(message);
   }
 }
 
