@@ -80,7 +80,7 @@
             data-period-control-action="true"
             onclick="previewClosePeriodDataQualityOnly()"
             class="kpi-admin-action kpi-admin-action--quality">
-            ตรวจคุณภาพข้อมูลก่อนปิดรอบ
+            ตรวจข้อมูลก่อนปิดรอบ
           </button>
 
           <button type="button"
@@ -88,7 +88,7 @@
             data-period-control-action="true"
             onclick="closeMonthlyPeriodNow()"
             class="kpi-admin-action kpi-admin-action--danger">
-            ปิดรอบรายเดือน
+            เริ่มปิดรอบจริง
           </button>
         </div>
 
@@ -640,7 +640,7 @@ function resetMonthlyProgress() {
               Swal.fire({
                 icon: "warning",
                 title: "ไม่มีสิทธิ์ปิดรอบ",
-                text: "เมนูปิดรอบรายเดือนสำหรับ superadmin เท่านั้น",
+                text: "เมนูปิดรอบรายเดือนใช้ได้เฉพาะบัญชี superadmin",
                 confirmButtonText: "ตกลง"
               });
               return false;
@@ -653,14 +653,14 @@ function resetMonthlyProgress() {
 
                     if (!beginClosePeriodFlow_(
                       "dq-preview",
-                      "⏳ กำลังตรวจสอบคุณภาพข้อมูลก่อนปิดรอบ..."
+                      "⏳ กำลังตรวจข้อมูลก่อนปิดรอบ..."
                     )) {
                       return;
                     }
 
                     Swal.fire({
                       title: "กำลังตรวจสอบข้อมูล...",
-                      text: "ระบบกำลังตรวจ Critical / Warning ก่อนปิดรอบ",
+                      text: "ระบบกำลังตรวจปัญหาสำคัญและข้อควรแก้ไขก่อนปิดรอบ",
                       allowOutsideClick: false,
                       allowEscapeKey: false,
                       didOpen: function() {
@@ -679,7 +679,7 @@ function resetMonthlyProgress() {
                         const msgEl = getClosePeriodMsgEl_();
                         if (msgEl) {
                           msgEl.textContent = dq.success
-                            ? `ตรวจข้อมูลแล้ว: Critical ${critical}, Warning ${warning}`
+                            ? `ตรวจข้อมูลแล้ว: ปัญหาสำคัญ ${critical}, ข้อควรแก้ไข ${warning}`
                             : "❌ ตรวจข้อมูลไม่สำเร็จ";
                         }
 
@@ -707,14 +707,14 @@ function resetMonthlyProgress() {
 
                     if (!beginClosePeriodFlow_(
                       "dq-before-close",
-                      "⏳ กำลังตรวจคุณภาพข้อมูลก่อนปิดรอบจริง..."
+                      "⏳ กำลังตรวจข้อมูลก่อนปิดรอบจริง..."
                     )) {
                       return;
                     }
 
                     Swal.fire({
                       title: "กำลังตรวจข้อมูลก่อนปิดรอบ...",
-                      text: "ระบบจะตรวจ Critical / Warning ก่อนเปิดขั้นตอนยืนยัน",
+                      text: "ระบบจะตรวจปัญหาสำคัญและข้อควรแก้ไขก่อนเปิดขั้นตอนยืนยัน",
                       allowOutsideClick: false,
                       allowEscapeKey: false,
                       didOpen: function() {
@@ -733,7 +733,7 @@ function resetMonthlyProgress() {
                         const msgEl = getClosePeriodMsgEl_();
                         if (msgEl) {
                           msgEl.textContent = dq.success
-                            ? `ตรวจข้อมูลแล้ว: Critical ${critical}, Warning ${warning}`
+                            ? `ตรวจข้อมูลแล้ว: ปัญหาสำคัญ ${critical}, ข้อควรแก้ไข ${warning}`
                             : "❌ ตรวจข้อมูลไม่สำเร็จ";
                         }
 
@@ -773,7 +773,7 @@ function resetMonthlyProgress() {
                     title = "ยังปิดรอบไม่ได้";
                   } else if (hasWarning) {
                     icon = "warning";
-                    title = "ตรวจข้อมูลเรียบร้อย มี Warning แต่สามารถปิดรอบได้";
+                    title = "ตรวจข้อมูลแล้ว พบข้อควรแก้ไข แต่ยังปิดรอบได้";
                   }
 
                   return Swal.fire({
@@ -786,7 +786,7 @@ function resetMonthlyProgress() {
                       ? "ปิด"
                       : (
                           canClose
-                            ? "อ่าน Warning แล้ว ไปขั้นตอนยืนยันปิดรอบ"
+                            ? "อ่านข้อควรแก้ไขแล้ว ไปขั้นตอนยืนยันปิดรอบ"
                             : "รับทราบ"
                         ),
                     cancelButtonText: "ยกเลิก",
@@ -806,14 +806,14 @@ function resetMonthlyProgress() {
                     // ✅ ปุ่ม “ตรวจคุณภาพข้อมูล” ดูผลอย่างเดียว ไม่ไปปิดรอบ
                     if (previewOnly) {
                       finishClosePeriodFlow_(
-                        `ตรวจข้อมูลแล้ว: Critical ${Number(dq.criticalCount || 0)}, Warning ${Number(dq.warningCount || 0)}`
+                        `ตรวจข้อมูลแล้ว: ปัญหาสำคัญ ${Number(dq.criticalCount || 0)}, ข้อควรแก้ไข ${Number(dq.warningCount || 0)}`
                       );
                       return;
                     }
 
                     // ✅ Critical > 0 หรือ canClose false = ห้ามไปขั้นตอนพิมพ์ ปิดรอบ
                     if (!canClose) {
-                      finishClosePeriodFlow_("⛔ ปิดรอบไม่ได้ กรุณาแก้ Critical Issue ก่อน");
+                      finishClosePeriodFlow_("⛔ ปิดรอบไม่ได้ กรุณาแก้ปัญหาสำคัญก่อน");
                       return;
                     }
 
@@ -845,19 +845,19 @@ function buildDataQualityReviewHTML(dq) {
           ⛔ พบข้อมูลสำคัญที่ต้องแก้ก่อน
         </div>
         <div class="text-sm text-red-600 mt-1 leading-relaxed">
-          ระบบจะยังไม่ให้ปิดรอบ เพราะอาจทำให้ Snapshot หรือรายงานผู้บริหารผิดพลาด
+          ระบบจะยังไม่ให้ปิดรอบ เพราะอาจทำให้ข้อมูลประวัติหรือรายงานผู้บริหารผิดพลาด
         </div>
       </div>
     `
     : `
       <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
         <div class="font-bold text-emerald-700 text-base">
-          ✅ ไม่พบ Critical Issue
+          ✅ ไม่พบปัญหาสำคัญ
         </div>
         <div class="text-sm text-emerald-600 mt-1 leading-relaxed">
-          สามารถปิดรอบได้ ข้อมูลไม่พบปัญหาระดับรุนแรงที่กระทบการ Snapshot
+          สามารถปิดรอบได้ เพราะไม่พบปัญหาระดับรุนแรงที่กระทบการบันทึกข้อมูลรอบนี้
           <br>
-          รายการ Warning เป็นข้อมูลที่ควรทยอยปรับปรุง เพื่อให้ Dashboard สมบูรณ์ขึ้น
+          ข้อควรแก้ไขเป็นข้อมูลที่ควรทยอยปรับปรุง เพื่อให้ Dashboard สมบูรณ์ขึ้น
         </div>
       </div>
     `;
@@ -898,12 +898,12 @@ function buildDataQualityReviewHTML(dq) {
             <div class="mt-3 flex flex-wrap gap-2 text-xs">
               ${
                 item.critical > 0
-                  ? `<span class="rounded-full bg-red-50 text-red-600 border border-red-100 px-2.5 py-1 font-semibold">Critical ${item.critical}</span>`
+                  ? `<span class="rounded-full bg-red-50 text-red-600 border border-red-100 px-2.5 py-1 font-semibold">ปัญหาสำคัญ ${item.critical}</span>`
                   : ""
               }
               ${
                 item.warning > 0
-                  ? `<span class="rounded-full bg-amber-50 text-amber-600 border border-amber-100 px-2.5 py-1 font-semibold">Warning ${item.warning}</span>`
+                  ? `<span class="rounded-full bg-amber-50 text-amber-600 border border-amber-100 px-2.5 py-1 font-semibold">ข้อควรแก้ไข ${item.warning}</span>`
                   : ""
               }
             </div>
@@ -925,7 +925,7 @@ function buildDataQualityReviewHTML(dq) {
             <div class="flex flex-col gap-2">
               <div class="flex flex-wrap items-center gap-2">
                 <span class="rounded-full ${isCritical ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"} px-2.5 py-1 text-xs font-bold">
-                  ${isCritical ? "Critical" : "Warning"}
+                  ${isCritical ? "ปัญหาสำคัญ" : "ข้อควรแก้ไข"}
                 </span>
 
                 <span class="text-xs text-slate-500">
@@ -963,13 +963,13 @@ function buildDataQualityReviewHTML(dq) {
         </div>
 
         <div class="rounded-2xl border border-red-100 bg-red-50 p-4">
-          <div class="text-xs font-semibold text-red-600">Critical</div>
+          <div class="text-xs font-semibold text-red-600">ปัญหาสำคัญ</div>
           <div class="text-3xl font-bold text-red-700 mt-1">${criticalCount}</div>
           <div class="text-xs text-red-500 mt-1">ต้องแก้ก่อนปิดรอบ</div>
         </div>
 
         <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-          <div class="text-xs font-semibold text-amber-600">Warning</div>
+          <div class="text-xs font-semibold text-amber-600">ข้อควรแก้ไข</div>
           <div class="text-3xl font-bold text-amber-700 mt-1">${warningCount}</div>
           <div class="text-xs text-amber-500 mt-1">
             ไม่บล็อกการปิดรอบ / ควรทยอยปรับปรุง
@@ -999,7 +999,7 @@ function buildDataQualityReviewHTML(dq) {
           <div class="rounded-2xl border border-orange-100 bg-orange-50 p-4">
             <div class="text-xs font-semibold text-orange-600">ถึงรอบแต่ยังไม่ส่ง</div>
             <div class="text-2xl font-bold text-orange-700 mt-1">${notSubmitted}</div>
-            <div class="text-xs text-orange-500 mt-1">ไม่นับรวม NotDue</div>
+            <div class="text-xs text-orange-500 mt-1">ไม่รวมรายการที่ยังไม่ถึงรอบ</div>
           </div>
 
           <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
@@ -1030,7 +1030,7 @@ function buildDataQualityReviewHTML(dq) {
             ตัวอย่างรายการที่ควรตรวจสอบ
           </div>
           <div class="text-sm text-slate-500 mt-1">
-            แสดงตัวอย่างสูงสุด 10 รายการแรก โดยเรียง Critical ก่อน Warning
+            แสดงตัวอย่างสูงสุด 10 รายการแรก โดยเรียงปัญหาสำคัญก่อนข้อควรแก้ไข
           </div>
         </div>
 
@@ -1040,8 +1040,8 @@ function buildDataQualityReviewHTML(dq) {
       </div>
 
       <div class="rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 text-sm text-blue-700 leading-relaxed">
-        💡 <b>คำแนะนำ:</b> เมื่อ Critical = 0 สามารถดำเนินการปิดรอบได้
-        ส่วน Warning เช่น กลุ่มงานว่าง / ผู้รับผิดชอบว่าง / ยังไม่กำหนดรูปแบบประเมิน
+        💡 <b>คำแนะนำ:</b> เมื่อปัญหาสำคัญเป็น 0 สามารถดำเนินการปิดรอบได้
+        ส่วนข้อควรแก้ไข เช่น กลุ่มงานว่าง / ผู้รับผิดชอบว่าง / ยังไม่กำหนดรูปแบบประเมิน
         ควรวางแผนปรับปรุงข้อมูล Master ภายหลัง
         <br>
         🔐 ระบบจะยังไม่ปิดรอบทันที จนกว่าจะกดยืนยันและพิมพ์คำว่า <b>ปิดรอบ</b> ในขั้นตอนถัดไป
@@ -1063,19 +1063,19 @@ function buildDataQualityReviewHTML(dq) {
             <div class="text-left text-sm leading-6">
               <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 mb-4">
                 <div class="font-semibold text-emerald-700">
-                  ✅ ตรวจ Data Quality แล้ว ไม่พบ Critical Issue
+                  ✅ ตรวจข้อมูลแล้ว ไม่พบปัญหาสำคัญ
                 </div>
                 <div class="text-xs text-emerald-600 mt-1">
                   รอบที่จะปิด: <b>${dqEscapeHTML(periodLabel)}</b><br>
-                  Warning ที่พบ: <b>${warningCount}</b> รายการ<br>
-                  ขั้นตอนถัดไปคือ Snapshot ข้อมูลรอบปัจจุบัน แล้ว Reset เพื่อเปิดรอบใหม่
+                  ข้อควรแก้ไขที่พบ: <b>${warningCount}</b> รายการ<br>
+                  ขั้นตอนถัดไปคือบันทึกข้อมูลรอบปัจจุบัน แล้วล้างค่ารายเดือนเพื่อเปิดรอบใหม่
                 </div>
               </div>
 
               <p>ระบบจะดำเนินการตามลำดับนี้:</p>
               <ol class="list-decimal ml-5 mt-2">
-                <li>บันทึก Snapshot รอบปัจจุบันเข้า TaskHistory</li>
-                <li>Reset ข้อมูลรายเดือนใน TaskData</li>
+                <li>บันทึกข้อมูลรอบปัจจุบันเข้า TaskHistory</li>
+                <li>ล้างค่ากรอกรายเดือนใน TaskData</li>
                 <li>เปิดรอบใหม่เป็นเดือนถัดไป</li>
               </ol>
 
