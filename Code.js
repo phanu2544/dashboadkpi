@@ -4457,6 +4457,33 @@ function buildMonthlyCloseBlockerSummary_(readiness, exceptionQueue, quality) {
   };
 }
 
+function sanitizeMonthlyCloseClientPayload_(value) {
+  if (value === undefined) return "";
+  if (value === null) return null;
+
+  if (value instanceof Date) {
+    return isNaN(value.getTime()) ? "" : value.toISOString();
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(function(item) {
+      return sanitizeMonthlyCloseClientPayload_(item);
+    });
+  }
+
+  if (typeof value === "object") {
+    const output = {};
+
+    Object.keys(value).forEach(function(key) {
+      output[key] = sanitizeMonthlyCloseClientPayload_(value[key]);
+    });
+
+    return output;
+  }
+
+  return value;
+}
+
 function buildMonthlyCloseDryRunDebugBase_() {
   return {
     functionName: "runDryRunSnapshotForMonthlyCloseConsole",
@@ -4573,7 +4600,7 @@ function getMonthlyCloseManagementConsoleData(currentUsername) {
     const snapshotConfig = getSnapshotConfig();
     debug.step = "response-built";
 
-    return {
+    return sanitizeMonthlyCloseClientPayload_({
       success: true,
       ok: true,
       role: role,
@@ -4601,7 +4628,7 @@ function getMonthlyCloseManagementConsoleData(currentUsername) {
       snapshotConfig: snapshotConfig,
       generatedAt: new Date().toISOString(),
       debug: debug
-    };
+    });
   } catch (err) {
     const rawError = {
       name: err && err.name ? err.name : "Error",
@@ -4689,7 +4716,7 @@ function runDryRunSnapshotForMonthlyCloseConsole(currentUsername) {
       debug: debug
     };
     response.debug.responseKeys = Object.keys(response);
-    return response;
+    return sanitizeMonthlyCloseClientPayload_(response);
   } catch (err) {
     const rawError = {
       name: err && err.name ? err.name : "Error",
