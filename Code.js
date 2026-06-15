@@ -3630,6 +3630,13 @@ function ensureTaskHistoryReportingHeaders_() {
           function closeMonthlyPeriod(currentUsername) {
             const lock = LockService.getScriptLock();
             let locked = false;
+            let period = null;
+            let snapshotResult = null;
+            let resetResult = "";
+            let resetCompleted = false;
+            let nextPeriod = null;
+            let recoveryLog = null;
+            let isRecoveryResume = false;
 
             try {
               requireSuperAdmin_(currentUsername);
@@ -3644,11 +3651,18 @@ function ensureTaskHistoryReportingHeaders_() {
               const snapshotState = validateSnapshotStateBeforeClosePeriod_();
 
               if (!snapshotState.ok) {
-                return "❌ ปิดรอบรายเดือนไม่สำเร็จ: " + snapshotState.message;
+                recoveryLog = getClosePeriodRecoveryLogForPeriod_(snapshotState);
+                isRecoveryResume =
+                  snapshotState.status === "BLOCK_ALREADY_CLOSED" &&
+                  recoveryLog !== null;
+
+                if (!isRecoveryResume) {
+                  return "❌ ปิดรอบรายเดือนไม่สำเร็จ: " + snapshotState.message;
+                }
               }
 
               const now = new Date();
-              const period = getActivePeriodInfo();
+              period = getActivePeriodInfo();
 
               const props = PropertiesService.getScriptProperties();
 
@@ -3681,43 +3695,56 @@ function ensureTaskHistoryReportingHeaders_() {
               // ===============================
               // ✅ 0) Data Quality Check ก่อนปิดรอบ
               // ===============================
-              const dqResult = validateDataQualityBeforeClosePeriod_();
+              if (!isRecoveryResume) {
+                const dqResult = validateDataQualityBeforeClosePeriod_();
 
-              if (!dqResult.success) {
-                const detail = formatDQIssueList_(dqResult.issues);
+                if (!dqResult.success) {
+                  const detail = formatDQIssueList_(dqResult.issues);
 
-                safeAppendPeriodActionLog_({
-                  action: "CLOSE_PERIOD_FAILED_DQ",
-                  actionLabel: "ปิดรอบไม่สำเร็จ - ตรวจคุณภาพข้อมูลไม่ผ่าน",
-                  beforePeriod: period,
-                  afterPeriod: period,
-                  snapshotCount: "",
-                  success: false,
-                  message:
-                    "Data Quality Check ไม่ผ่าน\n" +
-                    "Critical: " + dqResult.criticalCount +
-                    "\nWarning: " + dqResult.warningCount,
-                  createdBy: currentUsername || "",
-                  meta: {
-                    criticalCount: dqResult.criticalCount,
-                    warningCount: dqResult.warningCount
-                  }
-                });
+                  safeAppendPeriodActionLog_({
+                    action: "CLOSE_PERIOD_FAILED_DQ",
+                    actionLabel: "ปิดรอบไม่สำเร็จ - ตรวจคุณภาพข้อมูลไม่ผ่าน",
+                    beforePeriod: period,
+                    afterPeriod: period,
+                    snapshotCount: "",
+                    success: false,
+                    message:
+                      "Data Quality Check ไม่ผ่าน\n" +
+                      "Critical: " + dqResult.criticalCount +
+                      "\nWarning: " + dqResult.warningCount,
+                    createdBy: currentUsername || "",
+                    meta: {
+                      criticalCount: dqResult.criticalCount,
+                      warningCount: dqResult.warningCount
+                    }
+                  });
 
-                return (
-                  "⛔ ปิดรอบไม่ได้ เพราะตรวจพบข้อมูลสำคัญไม่ครบหรือไม่ถูกต้อง\n\n" +
-                  "รายการทั้งหมด: " + dqResult.totalRows + "\n" +
-                  "Critical: " + dqResult.criticalCount + "\n" +
-                  "Warning: " + dqResult.warningCount + "\n\n" +
-                  "ตัวอย่างรายการที่ต้องแก้:\n" +
-                  detail + "\n\n" +
-                  "กรุณาแก้ข้อมูลก่อน แล้วค่อยกดปิดรอบใหม่อีกครั้ง"
-                );
+                  return (
+                    "⛔ ปิดรอบไม่ได้ เพราะตรวจพบข้อมูลสำคัญไม่ครบหรือไม่ถูกต้อง\n\n" +
+                    "รายการทั้งหมด: " + dqResult.totalRows + "\n" +
+                    "Critical: " + dqResult.criticalCount + "\n" +
+                    "Warning: " + dqResult.warningCount + "\n\n" +
+                    "ตัวอย่างรายการที่ต้องแก้:\n" +
+                    detail + "\n\n" +
+                    "กรุณาแก้ข้อมูลก่อน แล้วค่อยกดปิดรอบใหม่อีกครั้ง"
+                  );
+                }
               }
               // ===============================
               // 1) Snapshot ก่อน
               // ===============================
-              const snapshotResult = snapshotTasks15Days_(true, currentUsername);
+              if (isRecoveryResume) {
+                snapshotResult = {
+                  success: true,
+                  total: Number(recoveryLog.snapshotCount || snapshotState.existingRows || 0),
+                  period: period.label,
+                  periodKey: period.key,
+                  recoveredFromLogId: recoveryLog.logId || "",
+                  recoveredFromAction: recoveryLog.action || ""
+                };
+              } else {
+                snapshotResult = snapshotTasks15Days_(true, currentUsername);
+              }
 
               if (typeof snapshotResult === "string") {
                 if (
@@ -3780,7 +3807,7 @@ function ensureTaskHistoryReportingHeaders_() {
               // ===============================
               // 2) Reset หลัง Snapshot สำเร็จ
               // ===============================
-              const resetResult = resetMonthlyTaskProgress(currentUsername);
+              resetResult = resetMonthlyTaskProgress(currentUsername);
 
               if (
                 typeof resetResult === "string" &&
@@ -3807,6 +3834,8 @@ function ensureTaskHistoryReportingHeaders_() {
                 resetResult
               );
               }
+
+              resetCompleted = true;
 
               // ===============================
               // 3) บันทึกรอบที่ปิดแล้วใน PeriodControl
@@ -3842,7 +3871,7 @@ function ensureTaskHistoryReportingHeaders_() {
               // ===============================
               // 4) เลื่อน ActivePeriod ไปเดือนถัดไป
               // ===============================
-              const nextPeriod = getNextMonthPeriodInfo_(period);
+              nextPeriod = getNextMonthPeriodInfo_(period);
               setActivePeriodInfo_(nextPeriod, currentUsername);
 
               // ===============================
@@ -3858,13 +3887,15 @@ function ensureTaskHistoryReportingHeaders_() {
 
               
               safeAppendPeriodActionLog_({
-                action: "CLOSE_PERIOD",
-                actionLabel: "ปิดรอบรายเดือน",
+                action: isRecoveryResume ? "CLOSE_PERIOD_RECOVERED_AFTER_RESET_FAILURE" : "CLOSE_PERIOD",
+                actionLabel: isRecoveryResume ? "กู้การปิดรอบรายเดือน" : "ปิดรอบรายเดือน",
                 beforePeriod: period,
                 afterPeriod: nextPeriod,
                 snapshotCount: snapshotCount,
                 success: true,
-                message: "ปิดรอบรายเดือนสำเร็จ",
+                message: isRecoveryResume
+                  ? "กู้การปิดรอบหลัง Reset ไม่สำเร็จ และดำเนินการต่อสำเร็จ"
+                  : "ปิดรอบรายเดือนสำเร็จ",
                 createdBy: currentUsername || "",
                 meta: {
                   snapshotRunId: snapshotResult && snapshotResult.snapshotRunId,
@@ -3877,12 +3908,16 @@ function ensureTaskHistoryReportingHeaders_() {
                   duplicateSkipped: snapshotResult && snapshotResult.skippedDuplicate,
                   skippedNoTaskId: snapshotResult && snapshotResult.skippedNoTaskId,
                   fileCreated: snapshotResult && snapshotResult.fileCreated,
-                  telegramSent: snapshotResult && snapshotResult.telegramSent
+                  telegramSent: snapshotResult && snapshotResult.telegramSent,
+                  recoveredFromLogId: recoveryLog && recoveryLog.logId,
+                  recoveredFromAction: recoveryLog && recoveryLog.action
                 }
               });
 
               return (
-                "✅ ปิดรอบรายเดือนสำเร็จ\n\n" +
+                (isRecoveryResume
+                  ? "✅ กู้การปิดรอบรายเดือนสำเร็จ\n\n"
+                  : "✅ ปิดรอบรายเดือนสำเร็จ\n\n") +
                 "🗓️ รอบที่ปิด: " + period.label + "\n" +
                 "📌 Snapshot ใหม่: " + snapshotCount + " รายการ\n" +
                 "🔄 Reset เริ่มรอบใหม่เรียบร้อย\n" +
@@ -3891,6 +3926,26 @@ function ensureTaskHistoryReportingHeaders_() {
               );
 
             } catch (err) {
+              if (period && resetCompleted) {
+                safeAppendPeriodActionLog_({
+                  action: "CLOSE_PERIOD_FAILED_AFTER_RESET",
+                  actionLabel: "ปิดรอบไม่สำเร็จ - หลัง Reset",
+                  beforePeriod: period,
+                  afterPeriod: nextPeriod || period,
+                  snapshotCount: snapshotResult && typeof snapshotResult === "object"
+                    ? snapshotResult.total
+                    : "",
+                  success: false,
+                  message: err.message || String(err),
+                  createdBy: currentUsername || "",
+                  meta: {
+                    snapshotRunId: snapshotResult && snapshotResult.snapshotRunId,
+                    resetResult: String(resetResult || ""),
+                    stage: "AFTER_RESET"
+                  }
+                });
+              }
+
               console.error("closeMonthlyPeriod ERROR:", err);
               return "❌ ปิดรอบรายเดือนไม่สำเร็จ: " + err.message;
 
@@ -4244,9 +4299,53 @@ function getLatestCloseRelatedLog_(logs) {
       "CLOSE_PERIOD_FAILED_SNAPSHOT",
       "CLOSE_PERIOD_BLOCKED_EMPTY_SNAPSHOT",
       "CLOSE_PERIOD_FAILED_RESET",
+      "CLOSE_PERIOD_FAILED_AFTER_RESET",
+      "CLOSE_PERIOD_RECOVERED_AFTER_RESET_FAILURE",
       "BLOCK_CLOSE_PERIOD_DUPLICATE"
     ].indexOf(action) !== -1;
   }) || null;
+}
+
+function getLatestCloseRelatedLogForPeriod_(periodInfo) {
+  const periodKey = String(periodInfo && (periodInfo.periodKey || periodInfo.key) || "").trim();
+  const periodLabel = String(periodInfo && (periodInfo.periodLabel || periodInfo.label) || "").trim();
+  const logs = getRecentPeriodActionLogsForUI_(50);
+
+  return logs.find(function(log) {
+    const action = String(log && log.action ? log.action : "").trim();
+    const samePeriod =
+      (periodKey && String(log.beforePeriodKey || "").trim() === periodKey) ||
+      (periodLabel && String(log.beforePeriodLabel || "").trim() === periodLabel);
+
+    return samePeriod && [
+      "CLOSE_PERIOD",
+      "CLOSE_PERIOD_FAILED_DQ",
+      "CLOSE_PERIOD_FAILED_SNAPSHOT",
+      "CLOSE_PERIOD_BLOCKED_EMPTY_SNAPSHOT",
+      "CLOSE_PERIOD_FAILED_RESET",
+      "CLOSE_PERIOD_FAILED_AFTER_RESET",
+      "CLOSE_PERIOD_RECOVERED_AFTER_RESET_FAILURE",
+      "BLOCK_CLOSE_PERIOD_DUPLICATE"
+    ].indexOf(action) !== -1;
+  }) || null;
+}
+
+function getClosePeriodRecoveryLogForPeriod_(periodInfo) {
+  const latestLog = getLatestCloseRelatedLogForPeriod_(periodInfo);
+  const action = String(latestLog && latestLog.action ? latestLog.action : "").trim();
+
+  if (
+    latestLog &&
+    latestLog.success === false &&
+    (
+      action === "CLOSE_PERIOD_FAILED_RESET" ||
+      action === "CLOSE_PERIOD_FAILED_AFTER_RESET"
+    )
+  ) {
+    return latestLog;
+  }
+
+  return null;
 }
 
 function buildCloseResultSummaryFromLog_(log) {
@@ -4288,19 +4387,21 @@ function buildCloseResultSummaryFromLog_(log) {
 
 function isCloseMonthlyPeriodSuccessMessage_(message) {
   const text = String(message || "").trim();
-  return text.indexOf("✅ ปิดรอบรายเดือนสำเร็จ") === 0;
+  return text.indexOf("✅ ปิดรอบรายเดือนสำเร็จ") === 0 ||
+    text.indexOf("✅ กู้การปิดรอบรายเดือนสำเร็จ") === 0;
 }
 
 function buildCloseResultSummaryFromSuccessMessage_(message) {
   const text = String(message || "");
+  const isRecovery = text.indexOf("✅ กู้การปิดรอบรายเดือนสำเร็จ") === 0;
   const periodMatch = text.match(/รอบที่ปิด:\s*([^\n]+)/);
   const nextPeriodMatch = text.match(/เปิดรอบใหม่:\s*([^\n]+)/);
   const snapshotMatch = text.match(/Snapshot ใหม่:\s*(\d+)/);
 
   return {
     hasResult: true,
-    action: "CLOSE_PERIOD",
-    actionLabel: "ปิดรอบรายเดือน",
+    action: isRecovery ? "CLOSE_PERIOD_RECOVERED_AFTER_RESET_FAILURE" : "CLOSE_PERIOD",
+    actionLabel: isRecovery ? "กู้การปิดรอบรายเดือน" : "ปิดรอบรายเดือน",
     success: true,
     periodLabel: periodMatch ? periodMatch[1].trim() : "",
     nextPeriodLabel: nextPeriodMatch ? nextPeriodMatch[1].trim() : "",
