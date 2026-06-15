@@ -12444,12 +12444,21 @@ function getReportingSchedulePayload(prefix) {
           // ✅ Register Chart.js Datalabels Plugin
           // ✅ ปิด datalabels เป็นค่าเริ่มต้นทั้งระบบ
           // ถ้ากราฟไหนอยากให้ขึ้น label ค่อยเปิดเฉพาะกราฟนั้น
+          window.KPI_ENABLE_CHART_DATALABELS = false;
           if (typeof Chart !== "undefined" && typeof ChartDataLabels !== "undefined") {
-            Chart.register(ChartDataLabels);
+            if (window.KPI_ENABLE_CHART_DATALABELS === true) {
+              Chart.register(ChartDataLabels);
 
-            Chart.defaults.set("plugins.datalabels", {
-              display: false
-            });
+              Chart.defaults.set("plugins.datalabels", {
+                display: false
+              });
+            } else {
+              try {
+                Chart.unregister(ChartDataLabels);
+              } catch (error) {
+                console.warn("Chart datalabels plugin disabled", error);
+              }
+            }
           }
 
 
@@ -26111,6 +26120,7 @@ function renderExecutiveSummaryChart_(canvasId, stageId, rows, labelKey, current
 
   try {
     if (
+      window.KPI_ENABLE_CHART_DATALABELS === true &&
       typeof ChartDataLabels !== "undefined" &&
       Chart.registry &&
       Chart.registry.plugins &&
@@ -26295,7 +26305,10 @@ function renderExecutiveSummaryChart_(canvasId, stageId, rows, labelKey, current
         },
         datalabels: {
           display: function(context) {
-            return Number(context.dataset.data[context.dataIndex] || 0) > 0;
+            var datasetData = context && context.dataset && Array.isArray(context.dataset.data)
+              ? context.dataset.data
+              : [];
+            return Number(datasetData[context ? context.dataIndex : 0] || 0) > 0;
           },
           anchor: "end",
           align: "end",
