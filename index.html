@@ -7977,11 +7977,15 @@ body {
       const missingReportingFrequency = Number(summary.missingReportingFrequency || data?.summary?.missingReportingFrequency || 0);
       const missingEvaluateMode = Number(summary.missingEvaluateMode || data?.summary?.missingEvaluateMode || 0);
 
-      if (warningCount > 0 || criticalCount > 0) {
-        return "ยังไม่พร้อมปิดรอบ เพราะยังมีข้อมูลที่ควรแก้ไข: " +
+      if (criticalCount > 0) {
+        return "ยังปิดรอบไม่ได้ เพราะยังมีปัญหาสำคัญที่ต้องแก้ไข: " +
           "ยังไม่ส่งข้อมูล " + notSubmitted + " รายการ, " +
           "ยังไม่ได้ตั้งค่ารอบรายงาน " + missingReportingFrequency + " รายการ, " +
           "ยังไม่ได้ตั้งค่าวิธีประเมินผล " + missingEvaluateMode + " รายการ";
+      }
+
+      if (warningCount > 0) {
+        return "ตรวจพบข้อควรแก้ไข " + warningCount + " รายการ แต่ไม่มีปัญหาสำคัญที่ห้ามปิดรอบ superadmin สามารถยืนยันปิดรอบได้";
       }
 
       const blockerSummary = data?.blockerSummary || {};
@@ -8118,14 +8122,14 @@ function updateMonthlyCloseConsoleRoleState() {
 
       if (closeBtn) {
         const lastSummary = normalizeMonthlyCloseResponseSummary(monthlyCloseConsoleState.lastDryRunSummary || {});
-        const hasReadinessWarning = Number(lastSummary.warningCount || 0) > 0 || Number(lastSummary.criticalCount || 0) > 0;
+        const hasCriticalIssue = Number(lastSummary.criticalCount || 0) > 0;
         closeBtn.disabled = !(
           role === "superadmin" &&
           monthlyCloseConsoleState.hasExecutedDryRun &&
           monthlyCloseConsoleState.lastDryRunBackendOk === true &&
           quality &&
           quality.canClose === true &&
-          !hasReadinessWarning
+          !hasCriticalIssue
         );
         closeBtn.title = disableReason;
       }
@@ -8667,14 +8671,16 @@ function updateMonthlyCloseConsoleRoleState() {
 
       const currentData = monthlyCloseConsoleState.data;
       const lastSummary = normalizeMonthlyCloseResponseSummary(monthlyCloseConsoleState.lastDryRunSummary || {});
-      const hasReadinessWarning = Number(lastSummary.warningCount || 0) > 0 || Number(lastSummary.criticalCount || 0) > 0;
-      if (currentData?.quality?.canClose !== true || hasReadinessWarning) {
+      const warningCount = Number(lastSummary.warningCount || 0);
+      const criticalCount = Number(lastSummary.criticalCount || 0);
+      const hasCriticalIssue = criticalCount > 0;
+      if (currentData?.quality?.canClose !== true || hasCriticalIssue) {
         focusMonthlyCloseManagementConsole();
         if (typeof Swal !== "undefined") {
           Swal.fire({
             icon: "warning",
-            title: hasReadinessWarning
-              ? "ยังไม่พร้อมปิดรอบ เพราะยังมีข้อมูลที่ควรแก้ไข"
+            title: hasCriticalIssue
+              ? "ยังปิดรอบไม่ได้ เพราะยังมีปัญหาสำคัญ"
               : "ยังไม่พร้อมปิดรอบ",
             confirmButtonText: "ตกลง",
             html: buildMonthlyCloseNotReadyHtml(currentData)
@@ -8704,6 +8710,9 @@ function updateMonthlyCloseConsoleRoleState() {
             '<div><strong>ส่งข้อมูลแล้ว:</strong> ' + escapeHTML(String(currentData?.preview?.submitted || 0)) + ' รายการ</div>' +
             '<div><strong>ยังไม่ถึงรอบ:</strong> ' + escapeHTML(String(currentData?.preview?.notDue || 0)) + ' รายการ</div>' +
             '<div><strong>ยังไม่ส่งข้อมูล:</strong> ' + escapeHTML(String(currentData?.preview?.notSubmitted || 0)) + ' รายการ</div>' +
+            (warningCount > 0
+              ? '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ยังมีข้อควรแก้ไข ' + escapeHTML(String(warningCount)) + ' รายการ แต่ไม่มีปัญหาสำคัญที่ห้ามปิดรอบ โปรดตรวจสอบก่อนยืนยัน</div>'
+              : '') +
             '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ระบบจะบันทึกข้อมูลรอบนี้ ล้างค่ารายเดือนเดิม และเลื่อนไปยังรอบถัดไปทันที</div>' +
           '</div>'
       }).then(function(result) {
