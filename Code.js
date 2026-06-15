@@ -4286,6 +4286,30 @@ function buildCloseResultSummaryFromLog_(log) {
   };
 }
 
+function isCloseMonthlyPeriodSuccessMessage_(message) {
+  const text = String(message || "").trim();
+  return text.indexOf("✅ ปิดรอบรายเดือนสำเร็จ") === 0;
+}
+
+function buildCloseResultSummaryFromSuccessMessage_(message) {
+  const text = String(message || "");
+  const periodMatch = text.match(/รอบที่ปิด:\s*([^\n]+)/);
+  const nextPeriodMatch = text.match(/เปิดรอบใหม่:\s*([^\n]+)/);
+  const snapshotMatch = text.match(/Snapshot ใหม่:\s*(\d+)/);
+
+  return {
+    hasResult: true,
+    action: "CLOSE_PERIOD",
+    actionLabel: "ปิดรอบรายเดือน",
+    success: true,
+    periodLabel: periodMatch ? periodMatch[1].trim() : "",
+    nextPeriodLabel: nextPeriodMatch ? nextPeriodMatch[1].trim() : "",
+    snapshotCount: snapshotMatch ? Number(snapshotMatch[1]) : 0,
+    note: text,
+    fallbackFromMessage: true
+  };
+}
+
 function buildMonthlyCloseBlockerSummary_(readiness, exceptionQueue, quality) {
   readiness = readiness || {};
   quality = quality || {};
@@ -4658,12 +4682,15 @@ function runClosePeriodFromMonthlyCloseConsole(currentUsername) {
 
   const latestLog = afterLogs.length ? afterLogs[0] : null;
   const latestIsNew = latestLog && latestLog.logId !== beforeLogId;
+  const fallbackSuccess = !latestIsNew && isCloseMonthlyPeriodSuccessMessage_(message);
   const resultSummary = latestIsNew
     ? buildCloseResultSummaryFromLog_(latestLog)
-    : { hasResult: false };
+    : (fallbackSuccess
+      ? buildCloseResultSummaryFromSuccessMessage_(message)
+      : { hasResult: false });
 
   return {
-    success: latestIsNew ? latestLog.success === true : false,
+    success: latestIsNew ? latestLog.success === true : fallbackSuccess,
     message: message,
     resultSummary: resultSummary,
     consoleData: consoleData
