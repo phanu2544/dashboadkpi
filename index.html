@@ -5996,6 +5996,13 @@ body {
                     </button>
 
                     <button type="button"
+                      id="monthlyCloseExportQueueBtn"
+                      onclick="exportMonthlyCloseExceptionQueueCsv()"
+                      class="kpi-action-btn kpi-action-btn--secondary">
+                      ส่งออกรายการที่ควรแก้ CSV
+                    </button>
+
+                    <button type="button"
                       id="monthlyCloseExecuteBtn"
                       onclick="runMonthlyClosePeriodAction()"
                       class="kpi-action-btn kpi-action-btn--danger">
@@ -8357,6 +8364,109 @@ function updateMonthlyCloseConsoleRoleState() {
             '<div class="close-console__queue-items">' + itemsHtml + '</div>' +
           '</details>';
       }).join("");
+    }
+
+    function getMonthlyCloseExceptionQueueForExport_() {
+      const data = monthlyCloseConsoleState.data || {};
+      const warnings = Array.isArray(data.warnings)
+        ? data.warnings
+        : Array.isArray(data.quality?.warnings)
+          ? data.quality.warnings
+          : [];
+
+      if (data.exceptionQueue && Number(data.exceptionQueue.totalItems || 0) > 0) {
+        return data.exceptionQueue;
+      }
+
+      return warnings.length
+        ? buildMonthlyCloseWarningsQueueFromResponse_(warnings)
+        : null;
+    }
+
+    function buildMonthlyCloseExceptionQueueCsvRows_(queue) {
+      const groups = queue?.groups || {};
+      const keys = Object.keys(groups);
+      const rows = [];
+
+      keys.forEach(function(key) {
+        const group = groups[key] || {};
+        const items = Array.isArray(group.items) ? group.items : [];
+
+        items.forEach(function(item) {
+          rows.push([
+            group.title || key,
+            item.severity || "",
+            item.rowNumber || "",
+            item.taskId || "",
+            item.taskName || "",
+            item.department || "",
+            item.workGroup || "",
+            item.assignee || "",
+            item.reportingStatus || "",
+            item.issueText || "",
+            item.recommendedAction || "",
+            Array.isArray(item.tags) ? item.tags.join(" | ") : ""
+          ]);
+        });
+      });
+
+      return rows;
+    }
+
+    function buildMonthlyCloseExceptionQueueFileName_() {
+      const data = monthlyCloseConsoleState.data || {};
+      const periodKey = String(data.periodStatus?.currentPeriodKey || "period").replace(/[^\w-]+/g, "_");
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "");
+      return "monthly_close_exception_queue_" + periodKey + "_" + stamp + ".csv";
+    }
+
+    function exportMonthlyCloseExceptionQueueCsv() {
+      const queue = getMonthlyCloseExceptionQueueForExport_();
+      const rows = buildMonthlyCloseExceptionQueueCsvRows_(queue);
+
+      if (!queue || !rows.length) {
+        if (typeof Swal !== "undefined") {
+          Swal.fire(
+            "ยังไม่มีรายการสำหรับส่งออก",
+            "กรุณากดโหลดสถานะล่าสุดหรือตรวจความพร้อมก่อน",
+            "info"
+          );
+        }
+        return;
+      }
+
+      const headers = [
+        "Group",
+        "Severity",
+        "Row",
+        "TaskID",
+        "TaskName",
+        "Department",
+        "WorkGroup",
+        "Assignee",
+        "ReportingStatus",
+        "Issue",
+        "RecommendedAction",
+        "Tags"
+      ];
+
+      const csv = "\uFEFF" + [
+        headers.map(csvEscapeCell_).join(","),
+        ...rows.map(function(row) {
+          return row.map(csvEscapeCell_).join(",");
+        })
+      ].join("\n");
+
+      const fileName = buildMonthlyCloseExceptionQueueFileName_();
+      downloadTextFile_(csv, fileName, "text/csv;charset=utf-8");
+
+      if (typeof Swal !== "undefined") {
+        Swal.fire(
+          "ส่งออก CSV แล้ว",
+          fileName + " (" + rows.length + " รายการ)",
+          "success"
+        );
+      }
     }
 
     function renderMonthlyCloseResultSummary(data) {
