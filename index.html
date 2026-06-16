@@ -3008,6 +3008,71 @@ textarea {
   box-shadow: var(--h-shadow) !important;
 }
 
+#adminControlCenter {
+  margin: 0 16px 24px;
+}
+
+.admin-control-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-control-card {
+  display: flex;
+  min-height: 230px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: var(--h-shadow);
+}
+
+.admin-control-card__kicker {
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-control-card__title {
+  margin-top: 6px;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.admin-control-card__desc {
+  margin-top: 7px;
+  color: #64748b;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+
+.admin-control-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-control-chip {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 /* Header */
 .app-header {
   padding: 14px 18px !important;
@@ -5492,6 +5557,10 @@ body {
   .close-export-manual__grid {
     grid-template-columns: 1fr;
   }
+
+  .admin-control-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 700px) {
@@ -5974,7 +6043,8 @@ body {
                       <button type="button"
                         class="app-sidebar__link"
                         data-sidebar-menu="users"
-                        data-sidebar-action="openAdminModal">
+                        data-sidebar-page="admin"
+                        data-sidebar-target="adminControlCenter">
                         <span class="app-sidebar__icon">U</span>
                         <span class="app-sidebar__text">
                           <span class="app-sidebar__name">ผู้ใช้งาน</span>
@@ -5985,7 +6055,8 @@ body {
                       <button type="button"
                         class="app-sidebar__link"
                         data-sidebar-menu="settings"
-                        data-sidebar-action="openAdminModal">
+                        data-sidebar-page="admin"
+                        data-sidebar-target="adminControlCenter">
                         <span class="app-sidebar__icon">S</span>
                         <span class="app-sidebar__text">
                           <span class="app-sidebar__name">ตั้งค่า</span>
@@ -6109,6 +6180,73 @@ body {
                     class="kpi-action-btn kpi-action-btn--secondary hidden">
                     จัดการผู้ใช้
                   </button>
+                </div>
+              </section>
+
+              <section id="adminControlCenter" class="kpi-section-card app-admin-control hidden" data-app-page="admin" aria-label="ศูนย์จัดการผู้ดูแลระบบ">
+                <div class="admin-control-grid">
+                  <article class="admin-control-card">
+                    <div>
+                      <div class="admin-control-card__kicker">Users</div>
+                      <h3 class="admin-control-card__title">จัดการผู้ใช้งานและสิทธิ์</h3>
+                      <p class="admin-control-card__desc">
+                        ตรวจรายชื่อผู้ใช้ ปรับสิทธิ์ และลบบัญชีที่ไม่ควรใช้งานจากหน้าจัดการเดิม
+                      </p>
+                    </div>
+                    <div>
+                      <div class="admin-control-card__meta">
+                        <span class="admin-control-chip">เฉพาะ superadmin</span>
+                        <span class="admin-control-chip">เปิด modal เดิม</span>
+                      </div>
+                      <button type="button"
+                        onclick="openUserModal()"
+                        class="kpi-action-btn kpi-action-btn--primary mt-4">
+                        เปิดหน้าจัดการผู้ใช้งาน
+                      </button>
+                    </div>
+                  </article>
+
+                  <article class="admin-control-card">
+                    <div>
+                      <div class="admin-control-card__kicker">Settings</div>
+                      <h3 class="admin-control-card__title">ตั้งค่าระบบรายงาน</h3>
+                      <p class="admin-control-card__desc">
+                        ใช้หน้าจัดการเดิมเพื่อตรวจการตั้งค่ารอบรายงานและการตั้งค่าที่เกี่ยวข้องกับผู้ดูแลระบบ
+                      </p>
+                    </div>
+                    <div>
+                      <div class="admin-control-card__meta">
+                        <span class="admin-control-chip">ไม่เปลี่ยน logic</span>
+                        <span class="admin-control-chip">ใช้ flow เดิม</span>
+                      </div>
+                      <button type="button"
+                        onclick="openUserModal()"
+                        class="kpi-action-btn kpi-action-btn--secondary mt-4">
+                        เปิดหน้าตั้งค่า
+                      </button>
+                    </div>
+                  </article>
+
+                  <article class="admin-control-card">
+                    <div>
+                      <div class="admin-control-card__kicker">Monthly Close</div>
+                      <h3 class="admin-control-card__title">ปิดรอบรายเดือน</h3>
+                      <p class="admin-control-card__desc">
+                        ไปที่คอนโซลเฉพาะสำหรับโหลดสถานะ ตรวจความพร้อม ดาวน์โหลด CSV และปิดรอบจริง
+                      </p>
+                    </div>
+                    <div>
+                      <div class="admin-control-card__meta">
+                        <span class="admin-control-chip">ขั้นตอนสำคัญ</span>
+                        <span class="admin-control-chip">แยกหน้าแล้ว</span>
+                      </div>
+                      <button type="button"
+                        onclick="focusMonthlyCloseManagementConsole()"
+                        class="kpi-action-btn kpi-action-btn--danger mt-4">
+                        ไปที่ปิดรอบรายเดือน
+                      </button>
+                    </div>
+                  </article>
                 </div>
               </section>
 
@@ -7937,6 +8075,15 @@ body {
         toolbarLabel: "รายงาน",
         toolbarDesc: "ดูแนวโน้มย้อนหลังและส่งออกข้อมูลตามสิทธิ์ผู้ใช้งาน"
       },
+      admin: {
+        menuKey: "users",
+        hash: "admin",
+        eyebrow: "Admin Center",
+        title: "ผู้ใช้งานและตั้งค่าระบบ",
+        description: "รวมงานจัดการบัญชี สิทธิ์ และทางลัดสำหรับงานผู้ดูแลระบบไว้ในที่เดียว",
+        toolbarLabel: "ศูนย์จัดการผู้ดูแลระบบ",
+        toolbarDesc: "เลือกงานผู้ดูแลระบบที่ต้องการทำจากการ์ดด้านล่าง"
+      },
       monthlyClose: {
         menuKey: "monthlyClose",
         hash: "monthly-close",
@@ -7987,6 +8134,10 @@ body {
       }, 80);
     }
 
+    function canViewAdminPage_() {
+      return String(window.currentUser?.role || "") === "superadmin";
+    }
+
     function showAppPage(pageKey, options) {
       options = options || {};
       let nextPage = appPageConfig[pageKey] ? pageKey : "dashboard";
@@ -7995,6 +8146,13 @@ body {
         nextPage === "monthlyClose" &&
         typeof canViewMonthlyCloseConsole === "function" &&
         !canViewMonthlyCloseConsole()
+      ) {
+        nextPage = "dashboard";
+      }
+
+      if (
+        nextPage === "admin" &&
+        !canViewAdminPage_()
       ) {
         nextPage = "dashboard";
       }
@@ -8175,6 +8333,16 @@ body {
         currentAppPage === "monthlyClose" &&
         typeof canViewMonthlyCloseConsole === "function" &&
         !canViewMonthlyCloseConsole()
+      ) {
+        showAppPage("dashboard", {
+          updateHash: true,
+          scrollTop: false
+        });
+      }
+
+      if (
+        currentAppPage === "admin" &&
+        !canViewAdminPage_()
       ) {
         showAppPage("dashboard", {
           updateHash: true,
@@ -9301,6 +9469,10 @@ function updateMonthlyCloseConsoleRoleState() {
               updateHash: true,
               scrollTop: false
             });
+
+            if (currentAppPage === pageKey) {
+              setSidebarActive(menuKey);
+            }
           }
 
           if (targetId) {
