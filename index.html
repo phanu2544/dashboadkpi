@@ -2953,6 +2953,42 @@ textarea {
   min-width: 0 !important;
 }
 
+.app-page-intro {
+  margin: 0 16px 18px;
+  padding: 18px;
+  border: 1px solid var(--h-border);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: var(--h-shadow);
+}
+
+.app-page-intro__eyebrow {
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-page-intro__title {
+  margin-top: 6px;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.app-page-intro__desc {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.app-page-hidden {
+  display: none !important;
+}
+
 /* Main surfaces */
 .app-header,
 .app-sidebar,
@@ -5881,6 +5917,7 @@ body {
                     <button type="button"
                       class="app-sidebar__link is-active"
                       data-sidebar-menu="dashboard"
+                      data-sidebar-page="dashboard"
                       data-sidebar-target="executiveSummaryBanner">
                       <span class="app-sidebar__icon">D</span>
                       <span class="app-sidebar__text">
@@ -5892,6 +5929,7 @@ body {
                     <button type="button"
                       class="app-sidebar__link"
                       data-sidebar-menu="kpi"
+                      data-sidebar-page="kpi"
                       data-sidebar-target="kpiListSection">
                       <span class="app-sidebar__icon">K</span>
                       <span class="app-sidebar__text">
@@ -5903,6 +5941,7 @@ body {
                     <button type="button"
                       class="app-sidebar__link"
                       data-sidebar-menu="history"
+                      data-sidebar-page="kpi"
                       data-sidebar-target="kpiListSection"
                       data-sidebar-action="historyHint">
                       <span class="app-sidebar__icon">H</span>
@@ -5915,6 +5954,7 @@ body {
                     <button type="button"
                       class="app-sidebar__link"
                       data-sidebar-menu="report"
+                      data-sidebar-page="report"
                       data-sidebar-target="trendSection">
                       <span class="app-sidebar__icon">R</span>
                       <span class="app-sidebar__text">
@@ -5955,12 +5995,13 @@ body {
 
                       <button type="button"
                         class="app-sidebar__link is-danger"
-                        data-sidebar-menu="admin"
-                        data-sidebar-action="openAdminModal">
+                        data-sidebar-menu="monthlyClose"
+                        data-sidebar-page="monthlyClose"
+                        data-sidebar-target="monthlyCloseManagementConsole">
                         <span class="app-sidebar__icon">A</span>
                         <span class="app-sidebar__text">
-                          <span class="app-sidebar__name">ผู้ดูแลระบบ</span>
-                          <span class="app-sidebar__desc">ปิดรอบ / เปิดรอบ / ตรวจข้อมูล</span>
+                          <span class="app-sidebar__name">ปิดรอบรายเดือน</span>
+                          <span class="app-sidebar__desc">ตรวจความพร้อม / CSV / ปิดรอบ</span>
                         </span>
                       </button>
 
@@ -5982,8 +6023,8 @@ body {
               <div class="app-toolbar">
 
                 <div class="app-toolbar__title">
-                  <span class="app-toolbar__label">ภาพรวมระบบติดตามตัวชี้วัด</span>
-                  <span class="app-toolbar__desc">จัดการข้อมูลตัวชี้วัดและส่งออกรายงานตามสิทธิ์ผู้ใช้งาน</span>
+                  <span id="appToolbarLabel" class="app-toolbar__label">ภาพรวมระบบติดตามตัวชี้วัด</span>
+                  <span id="appToolbarDesc" class="app-toolbar__desc">จัดการข้อมูลตัวชี้วัดและส่งออกรายงานตามสิทธิ์ผู้ใช้งาน</span>
                 </div>
 
                 <div class="app-toolbar__actions">
@@ -6001,8 +6042,16 @@ body {
 
               </div>
 
+              <section id="appPageIntro" class="app-page-intro" aria-live="polite">
+                <div id="appPageEyebrow" class="app-page-intro__eyebrow">Dashboard</div>
+                <h2 id="appPageTitle" class="app-page-intro__title">ภาพรวมผู้บริหาร</h2>
+                <p id="appPageDescription" class="app-page-intro__desc">
+                  ดูภาพรวมรอบรายงานปัจจุบัน รายการที่ควรติดตาม และสรุปตามหมวดหมู่
+                </p>
+              </section>
+
               <!-- Quick actions reuse the existing role-protected flows. -->
-              <section id="quickActionPanel" class="kpi-section-card kpi-quick-panel hidden" aria-label="ทางลัดตามสิทธิ์ผู้ใช้งาน">
+              <section id="quickActionPanel" class="kpi-section-card kpi-quick-panel hidden" data-app-page="dashboard" aria-label="ทางลัดตามสิทธิ์ผู้ใช้งาน">
                 <div>
                   <div class="kpi-quick-panel__eyebrow">Quick Actions</div>
                   <h2 id="quickActionTitle" class="kpi-section-title mt-1">ทางลัดสำหรับผู้ใช้งาน</h2>
@@ -6063,7 +6112,7 @@ body {
                 </div>
               </section>
 
-              <section id="monthlyCloseManagementConsole" class="close-console hidden" aria-label="Monthly Close Management Console">
+              <section id="monthlyCloseManagementConsole" class="close-console hidden" data-app-page="monthlyClose" aria-label="Monthly Close Management Console">
                 <div class="close-console__header">
                   <div>
                     <div class="close-console__eyebrow">Monthly Close Management</div>
@@ -6198,7 +6247,7 @@ body {
                 </section>
               </section>
 
-              <section id="monthlyCloseCsvManual" class="kpi-section-card close-export-manual hidden" aria-label="คู่มือรายการตรวจสอบก่อนปิดรอบ">
+              <section id="monthlyCloseCsvManual" class="kpi-section-card close-export-manual hidden" data-app-page="monthlyClose" aria-label="คู่มือรายการตรวจสอบก่อนปิดรอบ">
                 <div class="close-export-manual__header">
                   <div>
                     <div class="close-export-manual__eyebrow">CSV Manual</div>
@@ -6256,7 +6305,7 @@ body {
               </section>
 
                               <!-- ✅ Executive Overview -->
-                            <section id="executiveSummaryBanner"
+                            <section id="executiveSummaryBanner" data-app-page="dashboard"
                               class="kpi-section-card kpi-executive-overview">
 
                               <div class="kpi-executive-overview__header">
@@ -6341,7 +6390,7 @@ body {
 
 
 
-      <section id="headerSummary" class="hidden grid-cols-2 md:grid-cols-4 gap-4 mb-6 mx-4">
+      <section id="headerSummary" class="hidden grid-cols-2 md:grid-cols-4 gap-4 mb-6 mx-4" data-app-page="dashboard">
         <div
           class="summary-card bg-gradient-to-r from-yellow-400 to-yellow-300 text-white rounded-xl p-4 shadow-md border border-yellow-200">
           <h3 class="text-sm font-medium">รอดำเนินการ</h3>
@@ -6369,7 +6418,7 @@ body {
                
               <!-- ✅ Monthly KPI Summary -->
                   <!-- ✅ Monthly KPI Summary: Clean Dashboard Cards -->
-                  <section id="monthlyKpiSummary" class="kpi-dash-wrap">
+                  <section id="monthlyKpiSummary" class="kpi-dash-wrap" data-app-page="dashboard">
 
                     <div class="kpi-dash-topbar">
                       <div>
@@ -6473,7 +6522,7 @@ body {
 
 
                   <!-- ✅ Result Flow Overview -->
-                      <section id="resultFlowSection"
+                      <section id="resultFlowSection" data-app-page="dashboard"
                         class="mx-4 mb-8 rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
 
                         <div class="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-blue-50">
@@ -6598,7 +6647,7 @@ body {
 
 
                 <!-- ✅ Monthly KPI Dashboard Charts -->
-                    <section id="monthlyKpiDashboard" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 mx-4">
+                    <section id="monthlyKpiDashboard" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 mx-4" data-app-page="dashboard">
 
                       <!-- InputStatus Chart -->
                       <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
@@ -6679,13 +6728,13 @@ body {
                     </section>
 
 
-      <p id="lastUpdated" class="text-sm text-slate-500 italic text-right mb-6">
+      <p id="lastUpdated" class="text-sm text-slate-500 italic text-right mb-6" data-app-page="dashboard">
         อัปเดตล่าสุด: -
       </p>
 
 
                       <!-- ✅ Executive Follow-up List -->
-                  <section id="executiveFollowUpSection"
+                  <section id="executiveFollowUpSection" data-app-page="dashboard"
                     class="mx-4 mb-8 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
 
                     <div class="px-5 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -6835,7 +6884,7 @@ body {
 
 
                   <!-- ✅ Executive Success List -->
-                  <section id="executiveSuccessSection"
+                  <section id="executiveSuccessSection" data-app-page="dashboard"
                     class="mx-4 mb-8 bg-white rounded-2xl shadow-sm border border-emerald-200 overflow-hidden">
 
                     <div class="px-5 py-4 border-b border-emerald-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -6880,7 +6929,7 @@ body {
                   </section>
 
                   <!-- ✅ Executive Department Summary -->
-                  <section id="executiveDepartmentSummarySection"
+                  <section id="executiveDepartmentSummarySection" data-app-page="dashboard"
                     class="mx-4 mb-8 bg-white rounded-2xl shadow-sm border border-blue-200 overflow-hidden">
 
                     <div class="px-5 py-4 border-b border-blue-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -6934,7 +6983,7 @@ body {
 
 
                   <!-- ✅ Executive WorkGroup Summary -->
-                  <section id="executiveWorkGroupSummarySection"
+                  <section id="executiveWorkGroupSummarySection" data-app-page="dashboard"
                     class="mx-4 mb-8 bg-white rounded-2xl shadow-sm border border-purple-200 overflow-hidden">
 
                     <div class="px-5 py-4 border-b border-purple-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -6988,7 +7037,7 @@ body {
 
 
                   <!-- Progress Overview: Internal Workflow -->
-                    <section id="workflowStatusSection"
+                    <section id="workflowStatusSection" data-app-page="report"
                       class="hidden bg-white p-6 rounded-2xl shadow-sm mb-8 mx-4 border border-slate-200">
 
                       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-5">
@@ -7041,7 +7090,7 @@ body {
                     </section>
     
       <!-- Monthly trend combines current-period cards with historical performance. -->
-      <section id="trendSection"
+      <section id="trendSection" data-app-page="report"
         class="kpi-trend-section bg-white rounded-2xl shadow-sm mt-12 mb-12 mx-8">
 
         <div class="kpi-trend-header">
@@ -7230,7 +7279,7 @@ body {
 
 
       <!-- Filters and Task List -->
-      <main id="kpiListSection" class="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
+      <main id="kpiListSection" class="bg-white p-4 sm:p-6 rounded-xl shadow-sm" data-app-page="kpi">
         <!-- ✅ KPI Filter Panel -->
           <section id="kpiFilterPanel" class="kpi-filter-panel">
 
@@ -7860,6 +7909,125 @@ body {
     // ใช้สำหรับนำทางในหน้าเดิม ไม่แก้ logic หลักของระบบ
     // =====================================================
 
+    const appPageConfig = {
+      dashboard: {
+        menuKey: "dashboard",
+        hash: "dashboard",
+        eyebrow: "Dashboard",
+        title: "ภาพรวมผู้บริหาร",
+        description: "ดูภาพรวมรอบรายงานปัจจุบัน รายการที่ควรติดตาม และสรุปตามหมวดหมู่",
+        toolbarLabel: "ภาพรวมระบบติดตามตัวชี้วัด",
+        toolbarDesc: "สรุปสถานะข้อมูลและผลประเมินสำหรับการติดตามภาพรวม"
+      },
+      kpi: {
+        menuKey: "kpi",
+        hash: "kpi",
+        eyebrow: "KPI Workspace",
+        title: "ตัวชี้วัดและการกรอกข้อมูล",
+        description: "ค้นหา กรอง กรอกข้อมูล และตรวจสถานะตัวชี้วัดรายรายการ",
+        toolbarLabel: "รายการตัวชี้วัด",
+        toolbarDesc: "ทำงานกับข้อมูล KPI และรายการที่ถึงรอบรายงาน"
+      },
+      report: {
+        menuKey: "report",
+        hash: "report",
+        eyebrow: "Reports",
+        title: "รายงานและแนวโน้ม",
+        description: "ดูแนวโน้มรายเดือนและส่งออกรายงานสำหรับติดตามผลหลังปิดรอบ",
+        toolbarLabel: "รายงาน",
+        toolbarDesc: "ดูแนวโน้มย้อนหลังและส่งออกข้อมูลตามสิทธิ์ผู้ใช้งาน"
+      },
+      monthlyClose: {
+        menuKey: "monthlyClose",
+        hash: "monthly-close",
+        eyebrow: "Monthly Close",
+        title: "ปิดรอบรายเดือน",
+        description: "โหลดสถานะ ตรวจความพร้อม ดาวน์โหลดรายการตรวจสอบ และปิดรอบจริงอย่างเป็นขั้นตอน",
+        toolbarLabel: "การปิดรอบรายเดือน",
+        toolbarDesc: "พื้นที่ทำงานสำหรับผู้ดูแลระบบก่อนบันทึกข้อมูลเข้าประวัติ"
+      }
+    };
+
+    let currentAppPage = "dashboard";
+
+    function getAppPageFromHash_() {
+      const hash = String(window.location.hash || "").replace(/^#/, "");
+      const match = Object.keys(appPageConfig).find(function(key) {
+        return appPageConfig[key].hash === hash;
+      });
+
+      return match || "dashboard";
+    }
+
+    function updateAppPageCopy_(pageKey) {
+      const config = appPageConfig[pageKey] || appPageConfig.dashboard;
+      const toolbarLabel = document.getElementById("appToolbarLabel");
+      const toolbarDesc = document.getElementById("appToolbarDesc");
+      const eyebrow = document.getElementById("appPageEyebrow");
+      const title = document.getElementById("appPageTitle");
+      const desc = document.getElementById("appPageDescription");
+
+      if (toolbarLabel) toolbarLabel.textContent = config.toolbarLabel;
+      if (toolbarDesc) toolbarDesc.textContent = config.toolbarDesc;
+      if (eyebrow) eyebrow.textContent = config.eyebrow;
+      if (title) title.textContent = config.title;
+      if (desc) desc.textContent = config.description;
+    }
+
+    function getAppPageForElement_(element) {
+      if (!element) return "";
+
+      const owner = element.closest("[data-app-page]");
+      return owner ? String(owner.dataset.appPage || "").trim() : "";
+    }
+
+    function refreshVisibleAppPageLayout_() {
+      window.setTimeout(function() {
+        window.dispatchEvent(new Event("resize"));
+      }, 80);
+    }
+
+    function showAppPage(pageKey, options) {
+      options = options || {};
+      let nextPage = appPageConfig[pageKey] ? pageKey : "dashboard";
+
+      if (
+        nextPage === "monthlyClose" &&
+        typeof canViewMonthlyCloseConsole === "function" &&
+        !canViewMonthlyCloseConsole()
+      ) {
+        nextPage = "dashboard";
+      }
+
+      const config = appPageConfig[nextPage] || appPageConfig.dashboard;
+
+      currentAppPage = nextPage;
+
+      document.querySelectorAll("[data-app-page]").forEach(function(section) {
+        const pages = String(section.dataset.appPage || "")
+          .split(/\s+/)
+          .filter(Boolean);
+
+        section.classList.toggle("app-page-hidden", pages.indexOf(nextPage) === -1);
+      });
+
+      updateAppPageCopy_(nextPage);
+      setSidebarActive(config.menuKey);
+
+      if (options.updateHash !== false && config.hash) {
+        const nextHash = "#" + config.hash;
+        if (window.location.hash !== nextHash) {
+          history.replaceState(null, "", nextHash);
+        }
+      }
+
+      if (options.scrollTop === true) {
+        scrollToSidebarTarget("appPageIntro");
+      }
+
+      refreshVisibleAppPageLayout_();
+    }
+
     function setSidebarActive(menuKey) {
       document.querySelectorAll('.app-sidebar__link').forEach(function(btn) {
         btn.classList.toggle(
@@ -7902,6 +8070,14 @@ body {
           });
         }
         return;
+      }
+
+      const targetPage = getAppPageForElement_(target);
+      if (targetPage && targetPage !== currentAppPage) {
+        showAppPage(targetPage, {
+          updateHash: true,
+          scrollTop: false
+        });
       }
 
       const y = target.getBoundingClientRect().top + window.pageYOffset - 18;
@@ -7994,6 +8170,17 @@ body {
 
       renderQuickActionsByRole();
       updateMonthlyCloseConsoleRoleState();
+
+      if (
+        currentAppPage === "monthlyClose" &&
+        typeof canViewMonthlyCloseConsole === "function" &&
+        !canViewMonthlyCloseConsole()
+      ) {
+        showAppPage("dashboard", {
+          updateHash: true,
+          scrollTop: false
+        });
+      }
     }
 
     var monthlyCloseConsoleState = {
@@ -8051,6 +8238,11 @@ body {
     }
 
     function focusMonthlyCloseManagementConsole() {
+      showAppPage("monthlyClose", {
+        updateHash: true,
+        scrollTop: false
+      });
+
       const section = document.getElementById("monthlyCloseManagementConsole");
       if (!section || section.classList.contains("hidden")) return;
 
@@ -9098,10 +9290,18 @@ function updateMonthlyCloseConsoleRoleState() {
 
         btn.addEventListener('click', function() {
           const menuKey = this.dataset.sidebarMenu || '';
+          const pageKey = this.dataset.sidebarPage || '';
           const targetId = this.dataset.sidebarTarget || '';
           const actionName = this.dataset.sidebarAction || '';
 
           setSidebarActive(menuKey);
+
+          if (pageKey) {
+            showAppPage(pageKey, {
+              updateHash: true,
+              scrollTop: false
+            });
+          }
 
           if (targetId) {
             scrollToSidebarTarget(targetId);
@@ -9118,7 +9318,18 @@ function updateMonthlyCloseConsoleRoleState() {
       applySidebarVisibilityByRole();
     }
 
+    window.addEventListener("hashchange", function() {
+      showAppPage(getAppPageFromHash_(), {
+        updateHash: false,
+        scrollTop: true
+      });
+    });
+
     initSidebarNavigation();
+    showAppPage(getAppPageFromHash_(), {
+      updateHash: false,
+      scrollTop: false
+    });
     console.log("MonthlyCloseConsole UI version: v2");
     function login() {
       const username = document.getElementById('username').value.trim();
@@ -17500,13 +17711,7 @@ function isTaskDueInActivePeriod(task) {
 
                 renderFilteredTasks();
 
-                var main = document.querySelector("main");
-                if (main) {
-                  main.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start"
-                  });
-                }
+                scrollToSidebarTarget("kpiListSection");
 
                 if (typeof showHistoryMiniToast_ === "function") {
                   showHistoryMiniToast_(
@@ -17956,13 +18161,7 @@ function isTaskDueInActivePeriod(task) {
 
                 renderFilteredTasks();
 
-                var main = document.querySelector("main");
-                if (main) {
-                  main.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start"
-                  });
-                }
+                scrollToSidebarTarget("kpiListSection");
 
                 if (typeof showHistoryMiniToast_ === "function") {
                   var modeText = "ทั้งหมด";
@@ -18656,13 +18855,7 @@ function isTaskDueInActivePeriod(task) {
 
                 renderFilteredTasks();
 
-                var main = document.querySelector("main");
-                if (main) {
-                  main.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start"
-                  });
-                }
+                scrollToSidebarTarget("kpiListSection");
 
                 if (typeof showHistoryMiniToast_ === "function") {
                   var modeText = "ทั้งหมด";
@@ -26922,13 +27115,7 @@ function setResultFlowFilter(mode) {
   currentPage = 1;
   renderFilteredTasks();
 
-  const taskList = document.getElementById("taskList");
-  if (taskList) {
-    taskList.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-  }
+  scrollToSidebarTarget("kpiListSection");
 }
 
   function isPercentKpiTask_(task) {
