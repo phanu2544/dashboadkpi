@@ -3074,6 +3074,43 @@ textarea {
   font-weight: 700;
 }
 
+.settings-readout-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.settings-readout-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.settings-readout-row span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.settings-readout-row strong {
+  color: #0f172a;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.settings-readout-message {
+  margin-top: 10px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 /* Header */
 .app-header {
   padding: 14px 18px !important;
@@ -6297,21 +6334,42 @@ body {
 
                   <article class="admin-control-card">
                     <div>
-                      <div class="admin-control-card__kicker">Users & Roles</div>
-                      <h3 class="admin-control-card__title">ผู้ใช้งานและสิทธิ์</h3>
+                      <div class="admin-control-card__kicker">Period Settings</div>
+                      <h3 class="admin-control-card__title">สถานะการตั้งค่ารอบรายงาน</h3>
                       <p class="admin-control-card__desc">
-                        งานจัดการบัญชีแยกไปอยู่หน้าผู้ใช้งาน เพื่อให้หน้าตั้งค่าโฟกัสเฉพาะงานระบบและรอบรายงาน
+                        ดูค่า Snapshot อัตโนมัติและข้อมูลปิดรอบล่าสุดแบบอ่านอย่างเดียว ก่อนย้ายฟอร์มแก้ไขมาไว้หน้านี้
                       </p>
+                      <div class="settings-readout-list" aria-live="polite">
+                        <div class="settings-readout-row">
+                          <span>Snapshot อัตโนมัติ</span>
+                          <strong id="settingsSnapshotEnabledText">กำลังโหลด</strong>
+                        </div>
+                        <div class="settings-readout-row">
+                          <span>วันที่ Snapshot</span>
+                          <strong id="settingsSnapshotDaysText">กำลังโหลด</strong>
+                        </div>
+                        <div class="settings-readout-row">
+                          <span>เวลา Snapshot</span>
+                          <strong id="settingsSnapshotTimeText">กำลังโหลด</strong>
+                        </div>
+                        <div class="settings-readout-row">
+                          <span>ปิดรอบล่าสุด</span>
+                          <strong id="settingsLastCloseText">กำลังโหลด</strong>
+                        </div>
+                      </div>
+                      <div id="settingsSnapshotConfigMessage" class="settings-readout-message">
+                        กำลังโหลดการตั้งค่าจากระบบ...
+                      </div>
                     </div>
                     <div>
                       <div class="admin-control-card__meta">
-                        <span class="admin-control-chip">เฉพาะ superadmin</span>
-                        <span class="admin-control-chip">แยกหมวดแล้ว</span>
+                        <span class="admin-control-chip">อ่านอย่างเดียว</span>
+                        <span class="admin-control-chip">ใช้ config เดิม</span>
                       </div>
                       <button type="button"
-                        onclick="showAppPage('admin', { updateHash: true, scrollTop: true })"
+                        onclick="loadSettingsSnapshotConfig(true)"
                         class="kpi-action-btn kpi-action-btn--primary mt-4">
-                        ไปหน้าผู้ใช้งาน
+                        โหลดสถานะล่าสุด
                       </button>
                     </div>
                   </article>
@@ -8185,6 +8243,7 @@ body {
     };
 
     let currentAppPage = "dashboard";
+    let settingsSnapshotConfigLoadedAt = 0;
 
     function getAppPageFromHash_() {
       const hash = String(window.location.hash || "").replace(/^#/, "");
@@ -8231,6 +8290,108 @@ body {
           ? "none"
           : "inline-block";
       }
+    }
+
+    function setSettingsSnapshotText_(elementId, text) {
+      const el = document.getElementById(elementId);
+      if (el) el.textContent = text || "-";
+    }
+
+    function setSettingsSnapshotMessage_(text) {
+      const el = document.getElementById("settingsSnapshotConfigMessage");
+      if (el) el.textContent = text || "";
+    }
+
+    function setSettingsSnapshotLoading_() {
+      setSettingsSnapshotText_("settingsSnapshotEnabledText", "กำลังโหลด");
+      setSettingsSnapshotText_("settingsSnapshotDaysText", "กำลังโหลด");
+      setSettingsSnapshotText_("settingsSnapshotTimeText", "กำลังโหลด");
+      setSettingsSnapshotText_("settingsLastCloseText", "กำลังโหลด");
+      setSettingsSnapshotMessage_("กำลังโหลดการตั้งค่าจากระบบ...");
+    }
+
+    function formatSettingsSnapshotDays_(value) {
+      const days = String(value || "")
+        .split(",")
+        .map(function(day) { return day.trim(); })
+        .filter(Boolean);
+
+      return days.length
+        ? days.map(function(day) { return "วันที่ " + day; }).join(", ")
+        : "ยังไม่ได้กำหนด";
+    }
+
+    function formatSettingsSnapshotTime_(hour, minute) {
+      if (hour === "" || hour === null || typeof hour === "undefined") return "ยังไม่ได้กำหนด";
+      if (minute === "" || minute === null || typeof minute === "undefined") return "ยังไม่ได้กำหนด";
+
+      return String(hour).padStart(2, "0") + ":" + String(minute).padStart(2, "0") + " น.";
+    }
+
+    function formatSettingsDateThai_(isoDate) {
+      if (!isoDate) return "-";
+
+      const date = new Date(isoDate);
+      if (Number.isNaN(date.getTime())) return "-";
+
+      return date.toLocaleDateString("th-TH", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function renderSettingsSnapshotConfig_(cfg) {
+      cfg = cfg || {};
+      settingsSnapshotConfigLoadedAt = Date.now();
+
+      setSettingsSnapshotText_(
+        "settingsSnapshotEnabledText",
+        cfg.enabled === true ? "เปิดใช้งาน" : "ปิดใช้งาน"
+      );
+      setSettingsSnapshotText_("settingsSnapshotDaysText", formatSettingsSnapshotDays_(cfg.snapshot_days));
+      setSettingsSnapshotText_("settingsSnapshotTimeText", formatSettingsSnapshotTime_(cfg.snapshot_hour, cfg.snapshot_minute));
+
+      const lastCloseText = cfg.lastMonthlyCloseAt
+        ? formatSettingsDateThai_(cfg.lastMonthlyCloseAt) + " (" + (cfg.lastMonthlyClosePeriod || "-") + ")"
+        : "ยังไม่มีข้อมูลปิดรอบล่าสุด";
+
+      setSettingsSnapshotText_("settingsLastCloseText", lastCloseText);
+
+      const lastSnapshotText = cfg.recordedAt
+        ? "Snapshot ล่าสุด: " + formatSettingsDateThai_(cfg.recordedAt)
+        : "ยังไม่มีข้อมูล snapshot ล่าสุด";
+
+      setSettingsSnapshotMessage_(lastSnapshotText);
+    }
+
+    function loadSettingsSnapshotConfig(forceRefresh) {
+      if (!canViewAdminPage_()) return;
+
+      const loadedRecently = settingsSnapshotConfigLoadedAt &&
+        (Date.now() - settingsSnapshotConfigLoadedAt < 60000);
+
+      if (!forceRefresh && loadedRecently) return;
+
+      if (typeof google === "undefined" || !google.script || !google.script.run) {
+        setSettingsSnapshotMessage_("ยังไม่สามารถโหลดการตั้งค่าจาก Apps Script ได้");
+        return;
+      }
+
+      setSettingsSnapshotLoading_();
+
+      google.script.run
+        .withSuccessHandler(renderSettingsSnapshotConfig_)
+        .withFailureHandler(function() {
+          setSettingsSnapshotText_("settingsSnapshotEnabledText", "-");
+          setSettingsSnapshotText_("settingsSnapshotDaysText", "-");
+          setSettingsSnapshotText_("settingsSnapshotTimeText", "-");
+          setSettingsSnapshotText_("settingsLastCloseText", "-");
+          setSettingsSnapshotMessage_("โหลดการตั้งค่ารอบรายงานไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+        })
+        .getSnapshotConfig();
     }
 
     function getAppPageForElement_(element) {
@@ -8288,6 +8449,10 @@ body {
       updateAppPageCopy_(nextPage);
       updateAppToolbarActions_(nextPage);
       setSidebarActive(config.menuKey);
+
+      if (nextPage === "settings") {
+        loadSettingsSnapshotConfig(false);
+      }
 
       if (options.updateHash !== false && config.hash) {
         const nextHash = "#" + config.hash;
