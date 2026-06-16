@@ -5326,6 +5326,94 @@ body {
   text-align: center;
 }
 
+.close-export-manual {
+  margin: 0 16px 24px;
+  padding: 18px;
+}
+
+.close-export-manual__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.close-export-manual__eyebrow {
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.close-export-manual__title {
+  margin-top: 6px;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.close-export-manual__desc {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.close-export-manual__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.close-export-manual__panel {
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.close-export-manual__panel-title {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.close-export-manual__list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.close-export-manual__list li {
+  padding: 9px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.close-export-manual__list strong {
+  color: #0f172a;
+}
+
+.close-export-manual__note {
+  margin-top: 14px;
+  padding: 12px 13px;
+  border: 1px solid #fde68a;
+  border-radius: 14px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
 @media (max-width: 1100px) {
   .kpi-quick-panel {
     grid-template-columns: 1fr;
@@ -5364,6 +5452,10 @@ body {
   .close-console__result-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .close-export-manual__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 700px) {
@@ -5376,7 +5468,8 @@ body {
   .kpi-executive-overview__header,
   .kpi-executive-overview__grid,
   .kpi-executive-followup,
-  .close-console {
+  .close-console,
+  .close-export-manual {
     padding-left: 14px;
     padding-right: 14px;
   }
@@ -5996,10 +6089,17 @@ body {
                     </button>
 
                     <button type="button"
+                      id="monthlyCloseCsvManualBtn"
+                      onclick="openMonthlyCloseCsvManual()"
+                      class="kpi-action-btn kpi-action-btn--secondary">
+                      คู่มือการใช้ CSV
+                    </button>
+
+                    <button type="button"
                       id="monthlyCloseExportQueueBtn"
                       onclick="exportMonthlyCloseExceptionQueueCsv()"
                       class="kpi-action-btn kpi-action-btn--secondary">
-                      ส่งออกรายการที่ควรแก้ CSV
+                      ดาวน์โหลดรายการตรวจสอบ CSV
                     </button>
 
                     <button type="button"
@@ -6096,6 +6196,49 @@ body {
                     <div class="close-console__empty">ยังไม่มี action log</div>
                   </div>
                 </section>
+              </section>
+
+              <section id="monthlyCloseCsvManual" class="kpi-section-card close-export-manual hidden" aria-label="คู่มือรายการตรวจสอบก่อนปิดรอบ">
+                <div class="close-export-manual__header">
+                  <div>
+                    <div class="close-export-manual__eyebrow">CSV Manual</div>
+                    <h2 class="close-export-manual__title">คู่มือรายการตรวจสอบก่อนปิดรอบ</h2>
+                    <p class="close-export-manual__desc">
+                      ใช้ไฟล์นี้เป็นรายการติดตามก่อนกดปิดรอบจริง เพื่อดูว่า KPI ใดต้องส่งข้อมูล แก้ข้อมูล หรือทบทวนการตั้งค่า
+                    </p>
+                  </div>
+                  <button type="button"
+                    onclick="closeMonthlyCloseCsvManual()"
+                    class="kpi-action-btn kpi-action-btn--secondary">
+                    ปิดคู่มือ
+                  </button>
+                </div>
+
+                <div class="close-export-manual__grid">
+                  <div class="close-export-manual__panel">
+                    <div class="close-export-manual__panel-title">ขั้นตอนใช้งาน</div>
+                    <ul class="close-export-manual__list">
+                      <li><strong>1. โหลดสถานะล่าสุด</strong> เพื่อให้ระบบดึงข้อมูลรอบปัจจุบันก่อน</li>
+                      <li><strong>2. ตรวจความพร้อมก่อนปิดรอบ</strong> เพื่ออัปเดตรายการที่ต้องตรวจสอบ</li>
+                      <li><strong>3. ดาวน์โหลด CSV</strong> แล้วเปิดใน Excel หรือ Google Sheets</li>
+                      <li><strong>4. จัดการรายการสำคัญก่อน</strong> โดยเริ่มจากแถวที่มีระดับ “สำคัญมาก”</li>
+                    </ul>
+                  </div>
+
+                  <div class="close-export-manual__panel">
+                    <div class="close-export-manual__panel-title">ความหมายของกลุ่มรายการ</div>
+                    <ul class="close-export-manual__list">
+                      <li><strong>ยังไม่ส่งข้อมูล:</strong> ถึงรอบรายงานแล้ว ควรติดตามผู้รับผิดชอบให้ส่งข้อมูล</li>
+                      <li><strong>ส่งแล้วแต่ประเมินไม่ได้:</strong> มีข้อมูลแล้ว แต่ข้อมูลหรือกติกายังไม่พอให้สรุปผล</li>
+                      <li><strong>ตั้งค่า KPI ไม่ครบ:</strong> ควรตรวจรอบรายงาน วิธีประเมิน หรือกติกาเป้าหมาย</li>
+                      <li><strong>ไม่ถึงรอบรายงาน:</strong> ใช้ตรวจประกอบเท่านั้น โดยปกติไม่ต้องแก้ถ้ารอบรายงานถูกต้อง</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="close-export-manual__note">
+                  แนะนำให้แก้รายการ “ยังไม่ส่งข้อมูล”, “ส่งแล้วแต่ประเมินไม่ได้” และ “ตั้งค่า KPI ไม่ครบ” ก่อนปิดรอบ ส่วน “ไม่ถึงรอบรายงาน” ให้ตรวจเฉพาะกรณีสงสัยว่าตั้งรอบรายงานผิด
+                </div>
               </section>
 
               <!-- Friendly state for an empty dataset or a failed server request. -->
@@ -8383,6 +8526,44 @@ function updateMonthlyCloseConsoleRoleState() {
         : null;
     }
 
+    function openMonthlyCloseCsvManual() {
+      const section = document.getElementById("monthlyCloseCsvManual");
+      if (!section) return;
+
+      section.classList.remove("hidden");
+      scrollToSidebarTarget("monthlyCloseCsvManual");
+    }
+
+    function closeMonthlyCloseCsvManual() {
+      const section = document.getElementById("monthlyCloseCsvManual");
+      if (!section) return;
+
+      section.classList.add("hidden");
+      scrollToSidebarTarget("monthlyCloseManagementConsole");
+    }
+
+    function getMonthlyCloseExportSeverityLabel_(severity) {
+      const value = String(severity || "").trim().toLowerCase();
+
+      if (value === "critical") return "สำคัญมาก";
+      if (value === "warning") return "ควรแก้ไข";
+      if (value === "info") return "ข้อมูลประกอบ";
+
+      return severity || "";
+    }
+
+    function getMonthlyCloseExportStatusLabel_(status) {
+      const value = String(status || "").trim();
+
+      if (value === "NotSubmitted") return "ยังไม่ส่งข้อมูล";
+      if (value === "NotEvaluable") return "ส่งแล้วแต่ประเมินไม่ได้";
+      if (value === "NotDue") return "ยังไม่ถึงรอบรายงาน";
+      if (value === "Submitted") return "ส่งข้อมูลแล้ว";
+      if (value === "Evaluable") return "ประเมินผลได้";
+
+      return status || "";
+    }
+
     function buildMonthlyCloseExceptionQueueCsvRows_(queue) {
       const groups = queue?.groups || {};
       const keys = Object.keys(groups);
@@ -8394,15 +8575,16 @@ function updateMonthlyCloseConsoleRoleState() {
 
         items.forEach(function(item) {
           rows.push([
+            rows.length + 1,
             group.title || key,
-            item.severity || "",
+            getMonthlyCloseExportSeverityLabel_(item.severity),
             item.rowNumber || "",
             item.taskId || "",
             item.taskName || "",
             item.department || "",
             item.workGroup || "",
             item.assignee || "",
-            item.reportingStatus || "",
+            getMonthlyCloseExportStatusLabel_(item.reportingStatus),
             item.issueText || "",
             item.recommendedAction || "",
             Array.isArray(item.tags) ? item.tags.join(" | ") : ""
@@ -8428,7 +8610,7 @@ function updateMonthlyCloseConsoleRoleState() {
         if (typeof Swal !== "undefined") {
           Swal.fire(
             "ยังไม่มีรายการสำหรับส่งออก",
-            "กรุณากดโหลดสถานะล่าสุดหรือตรวจความพร้อมก่อน",
+            "กรุณากดโหลดสถานะล่าสุดหรือตรวจความพร้อมก่อน หากไม่แน่ใจให้เปิดคู่มือการใช้ CSV",
             "info"
           );
         }
@@ -8436,18 +8618,19 @@ function updateMonthlyCloseConsoleRoleState() {
       }
 
       const headers = [
-        "Group",
-        "Severity",
-        "Row",
-        "TaskID",
-        "TaskName",
-        "Department",
-        "WorkGroup",
-        "Assignee",
-        "ReportingStatus",
-        "Issue",
-        "RecommendedAction",
-        "Tags"
+        "ลำดับ",
+        "กลุ่มรายการ",
+        "ระดับความสำคัญ",
+        "แถวในชีต",
+        "รหัส KPI",
+        "ชื่อตัวชี้วัด",
+        "หน่วยงาน",
+        "กลุ่มงาน",
+        "ผู้รับผิดชอบ",
+        "สถานะรอบรายงาน",
+        "สิ่งที่ต้องตรวจสอบ",
+        "คำแนะนำ",
+        "ป้ายกำกับ"
       ];
 
       const csv = "\uFEFF" + [
