@@ -3111,6 +3111,128 @@ textarea {
   line-height: 1.55;
 }
 
+.settings-snapshot-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.settings-form-field {
+  display: grid;
+  gap: 7px;
+}
+
+.settings-form-label {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.settings-form-help {
+  color: #64748b;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.settings-form-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.settings-form-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: #0f766e;
+}
+
+.settings-day-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-day-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.settings-day-pill.is-disabled {
+  opacity: 0.55;
+}
+
+.settings-date-input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 0 10px;
+}
+
+.settings-date-input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.settings-time-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.settings-time-input {
+  width: 72px;
+  min-height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.settings-time-input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.settings-time-input--wide {
+  width: 128px;
+}
+
+.settings-form-message {
+  min-height: 18px;
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 /* Header */
 .app-header {
   padding: 14px 18px !important;
@@ -5100,6 +5222,12 @@ body {
   background: #ffffff;
 }
 
+.close-console__hint.is-danger {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+
 .close-console__grid,
 .close-console__split {
   display: grid;
@@ -5113,6 +5241,10 @@ body {
 
 .close-console__split {
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+}
+
+.close-console__split--stacked {
+  grid-template-columns: 1fr;
 }
 
 .close-console__panel {
@@ -5285,6 +5417,74 @@ body {
   margin-top: 14px;
 }
 
+.close-console__queue-filter {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(170px, 220px) minmax(150px, 190px) auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.close-console__filter-field {
+  display: grid;
+  gap: 6px;
+}
+
+.close-console__filter-field span {
+  color: #475569;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.close-console__filter-field input,
+.close-console__filter-field select {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.close-console__filter-reset {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.close-console__filter-reset:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.close-console__queue-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .close-console__queue-group {
   overflow: hidden;
   border: 1px solid #e2e8f0;
@@ -5331,6 +5531,21 @@ body {
   font-weight: 800;
 }
 
+.close-console__queue-count.is-critical {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.close-console__queue-count.is-warning {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.close-console__queue-count.is-info {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
 .close-console__queue-desc {
   margin-top: 2px;
   color: #64748b;
@@ -5351,6 +5566,21 @@ body {
   background: #ffffff;
 }
 
+.close-console__queue-item.is-critical {
+  border-color: #fecdd3;
+  background: #fffafa;
+}
+
+.close-console__queue-item.is-warning {
+  border-color: #fde68a;
+  background: #fffdf5;
+}
+
+.close-console__queue-item.is-info {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+
 .close-console__queue-top {
   display: flex;
   align-items: flex-start;
@@ -5363,6 +5593,13 @@ body {
   font-size: 13px;
   font-weight: 800;
   line-height: 1.55;
+}
+
+.close-console__queue-row {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .close-console__queue-meta,
@@ -5385,6 +5622,42 @@ body {
   color: #1d4ed8;
   font-size: 11px;
   font-weight: 700;
+}
+
+.close-console__queue-chip.is-critical {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.close-console__queue-chip.is-warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.close-console__queue-chip.is-info {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.close-console__queue-chip.is-success {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.close-console__queue-chip.is-muted {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.close-console__queue-chip.is-config {
+  border-color: #c4b5fd;
+  background: #f5f3ff;
+  color: #6d28d9;
 }
 
 .close-console__queue-issue {
@@ -5802,6 +6075,10 @@ body {
 
   .close-console__metric-grid,
   .close-console__result-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .close-console__queue-filter {
     grid-template-columns: 1fr;
   }
 
@@ -6334,10 +6611,10 @@ body {
 
                   <article class="admin-control-card">
                     <div>
-                      <div class="admin-control-card__kicker">Period Settings</div>
-                      <h3 class="admin-control-card__title">สถานะการตั้งค่ารอบรายงาน</h3>
+                      <div class="admin-control-card__kicker">Auto Snapshot Settings</div>
+                      <h3 class="admin-control-card__title">ตั้งค่า Auto Snapshot รายเดือน</h3>
                       <p class="admin-control-card__desc">
-                        ดูค่า Snapshot อัตโนมัติและข้อมูลปิดรอบล่าสุดแบบอ่านอย่างเดียว ก่อนย้ายฟอร์มแก้ไขมาไว้หน้านี้
+                        กำหนดวันที่ในแต่ละเดือนและเวลาที่ระบบจะ Snapshot อัตโนมัติ ส่วนการปิดรอบจริงยังทำที่เมนูปิดรอบรายเดือน
                       </p>
                       <div class="settings-readout-list" aria-live="polite">
                         <div class="settings-readout-row">
@@ -6345,7 +6622,7 @@ body {
                           <strong id="settingsSnapshotEnabledText">กำลังโหลด</strong>
                         </div>
                         <div class="settings-readout-row">
-                          <span>วันที่ Snapshot</span>
+                          <span>วันที่ Snapshot ในแต่ละเดือน</span>
                           <strong id="settingsSnapshotDaysText">กำลังโหลด</strong>
                         </div>
                         <div class="settings-readout-row">
@@ -6360,16 +6637,52 @@ body {
                       <div id="settingsSnapshotConfigMessage" class="settings-readout-message">
                         กำลังโหลดการตั้งค่าจากระบบ...
                       </div>
+                      <div class="settings-snapshot-form" aria-label="แก้ไขการตั้งค่า Snapshot">
+                        <label class="settings-form-check">
+                          <input type="checkbox" id="settings-cfg-enabled">
+                          <span>เปิดใช้งาน Snapshot อัตโนมัติ</span>
+                        </label>
+
+                        <div class="settings-form-field">
+                          <label class="settings-form-label" for="settings-cfg-date">วันที่ Snapshot ในแต่ละเดือน</label>
+                          <input type="date"
+                            id="settings-cfg-date"
+                            class="settings-date-input"
+                            aria-label="วันที่ทำ Snapshot">
+                          <div class="settings-form-help">
+                            ระบบจะบันทึกเป็นเลขวันที่ของเดือน เช่น เลือกวันที่ 15 จะ Snapshot ทุกเดือนในวันที่ 15
+                          </div>
+                        </div>
+
+                        <div class="settings-form-field">
+                          <label class="settings-form-label" for="settings-cfg-time">เวลาที่ทำ Snapshot</label>
+                          <div class="settings-time-row">
+                            <span>เวลา</span>
+                            <input type="time"
+                              id="settings-cfg-time"
+                              class="settings-time-input settings-time-input--wide"
+                              aria-label="เวลาที่ทำ Snapshot">
+                          </div>
+                        </div>
+
+                        <div id="settingsSnapshotFormMessage" class="settings-form-message" aria-live="polite"></div>
+                      </div>
                     </div>
                     <div>
                       <div class="admin-control-card__meta">
-                        <span class="admin-control-chip">อ่านอย่างเดียว</span>
+                        <span class="admin-control-chip">แก้ไขได้แล้ว</span>
                         <span class="admin-control-chip">ใช้ config เดิม</span>
                       </div>
                       <button type="button"
                         onclick="loadSettingsSnapshotConfig(true)"
+                        class="kpi-action-btn kpi-action-btn--secondary mt-4">
+                        คืนค่าจากระบบ
+                      </button>
+                      <button type="button"
+                        id="settingsSnapshotSaveBtn"
+                        onclick="saveSettingsSnapshotConfig()"
                         class="kpi-action-btn kpi-action-btn--primary mt-4">
-                        โหลดสถานะล่าสุด
+                        บันทึก Auto Snapshot
                       </button>
                     </div>
                   </article>
@@ -6469,13 +6782,50 @@ body {
                   </section>
                 </div>
 
-                <div class="close-console__split">
+                <div class="close-console__split close-console__split--stacked">
                   <section class="close-console__panel">
                     <div class="close-console__panel-head">
                       <div>
                         <div class="close-console__panel-kicker">รายการที่ต้องแก้ไข</div>
                         <h3 class="close-console__panel-title">รายการที่ต้องตรวจสอบก่อนปิดรอบ</h3>
                       </div>
+                    </div>
+
+                    <div class="close-console__queue-filter" aria-label="ตัวกรองรายการก่อนปิดรอบ">
+                      <label class="close-console__filter-field" for="monthlyCloseQueueSearch">
+                        <span>ค้นหา</span>
+                        <input
+                          id="monthlyCloseQueueSearch"
+                          type="search"
+                          placeholder="ค้นหารหัส KPI หรือชื่อรายการ"
+                          oninput="renderMonthlyCloseExceptionQueue(monthlyCloseConsoleState.data)">
+                      </label>
+
+                      <label class="close-console__filter-field" for="monthlyCloseQueueGroupFilter">
+                        <span>กลุ่มรายการ</span>
+                        <select id="monthlyCloseQueueGroupFilter" onchange="renderMonthlyCloseExceptionQueue(monthlyCloseConsoleState.data)">
+                          <option value="all">ทั้งหมด</option>
+                          <option value="warnings">ควรตรวจสอบก่อนปิดรอบ</option>
+                          <option value="notSubmitted">ยังไม่ส่งข้อมูล</option>
+                          <option value="notEvaluable">ส่งแล้วแต่ประเมินไม่ได้</option>
+                          <option value="configIncomplete">ตั้งค่า KPI ไม่ครบ</option>
+                          <option value="notDue">ยังไม่ถึงรอบรายงาน</option>
+                        </select>
+                      </label>
+
+                      <label class="close-console__filter-field" for="monthlyCloseQueueSeverityFilter">
+                        <span>ระดับ</span>
+                        <select id="monthlyCloseQueueSeverityFilter" onchange="renderMonthlyCloseExceptionQueue(monthlyCloseConsoleState.data)">
+                          <option value="all">ทั้งหมด</option>
+                          <option value="critical">ห้ามปิดรอบ</option>
+                          <option value="warning">ควรตรวจสอบ</option>
+                          <option value="info">ข้อมูลประกอบ</option>
+                        </select>
+                      </label>
+
+                      <button type="button" class="close-console__filter-reset" onclick="resetMonthlyCloseQueueFilters()">
+                        ล้างตัวกรอง
+                      </button>
                     </div>
 
                     <div id="monthlyCloseExceptionQueue" class="close-console__queue">
@@ -8302,12 +8652,44 @@ body {
       if (el) el.textContent = text || "";
     }
 
+    function setSettingsSnapshotFormMessage_(text, tone) {
+      const el = document.getElementById("settingsSnapshotFormMessage");
+      if (!el) return;
+
+      el.textContent = text || "";
+      el.style.color = tone === "error" ? "#b91c1c" : "#0f766e";
+    }
+
+    function setSettingsSnapshotSaving_(saving) {
+      const btn = document.getElementById("settingsSnapshotSaveBtn");
+      if (!btn) return;
+
+      btn.disabled = saving === true;
+      btn.textContent = saving === true ? "กำลังบันทึก..." : "บันทึกการตั้งค่า";
+    }
+
     function setSettingsSnapshotLoading_() {
       setSettingsSnapshotText_("settingsSnapshotEnabledText", "กำลังโหลด");
       setSettingsSnapshotText_("settingsSnapshotDaysText", "กำลังโหลด");
       setSettingsSnapshotText_("settingsSnapshotTimeText", "กำลังโหลด");
       setSettingsSnapshotText_("settingsLastCloseText", "กำลังโหลด");
       setSettingsSnapshotMessage_("กำลังโหลดการตั้งค่าจากระบบ...");
+      setSettingsSnapshotFormMessage_("กำลังโหลดค่าเดิม...");
+    }
+
+    function syncSettingsSnapshotFormState_() {
+      const enabled = document.getElementById("settings-cfg-enabled")?.checked === true;
+
+      ["settings-cfg-date", "settings-cfg-time"].forEach(function(id) {
+        const input = document.getElementById(id);
+        if (input) input.disabled = !enabled;
+      });
+
+      if (!enabled) {
+        setSettingsSnapshotFormMessage_("Snapshot อัตโนมัติปิดอยู่ ระบบจะไม่ใช้วันที่และเวลาที่กำหนด");
+      } else {
+        setSettingsSnapshotFormMessage_("");
+      }
     }
 
     function formatSettingsSnapshotDays_(value) {
@@ -8343,6 +8725,57 @@ body {
       });
     }
 
+    function formatSettingsDateInput_(date) {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+
+      return year + "-" + month + "-" + day;
+    }
+
+    function buildSettingsDateForDayOfMonth_(dayValue) {
+      const day = Number(dayValue);
+      if (!Number.isInteger(day) || day < 1 || day > 31) return "";
+
+      const today = new Date();
+      for (let offset = 0; offset < 12; offset++) {
+        const date = new Date(today.getFullYear(), today.getMonth() + offset, day);
+        if (date.getDate() === day) {
+          return formatSettingsDateInput_(date);
+        }
+      }
+
+      return "";
+    }
+
+    function formatSettingsTimeInput_(hour, minute) {
+      if (hour === "" || hour === null || typeof hour === "undefined") return "";
+      if (minute === "" || minute === null || typeof minute === "undefined") return "";
+
+      return String(hour).padStart(2, "0") + ":" + String(minute).padStart(2, "0");
+    }
+
+    function restoreSettingsSnapshotForm_(cfg) {
+      cfg = cfg || {};
+
+      const enabledEl = document.getElementById("settings-cfg-enabled");
+      const dateEl = document.getElementById("settings-cfg-date");
+      const timeEl = document.getElementById("settings-cfg-time");
+
+      if (enabledEl) enabledEl.checked = cfg.enabled === true;
+
+      const days = String(cfg.snapshot_days || "")
+        .split(",")
+        .map(function(day) { return day.trim(); })
+        .filter(Boolean);
+
+      if (dateEl) dateEl.value = buildSettingsDateForDayOfMonth_(days[0]);
+      if (timeEl) timeEl.value = formatSettingsTimeInput_(cfg.snapshot_hour, cfg.snapshot_minute);
+      syncSettingsSnapshotFormState_();
+    }
+
     function renderSettingsSnapshotConfig_(cfg) {
       cfg = cfg || {};
       settingsSnapshotConfigLoadedAt = Date.now();
@@ -8365,9 +8798,11 @@ body {
         : "ยังไม่มีข้อมูล snapshot ล่าสุด";
 
       setSettingsSnapshotMessage_(lastSnapshotText);
+      restoreSettingsSnapshotForm_(cfg);
+      setSettingsSnapshotFormMessage_("โหลดค่าเรียบร้อย");
     }
 
-    function loadSettingsSnapshotConfig(forceRefresh) {
+    function loadSettingsSnapshotConfig(forceRefresh, successMessage) {
       if (!canViewAdminPage_()) return;
 
       const loadedRecently = settingsSnapshotConfigLoadedAt &&
@@ -8383,7 +8818,12 @@ body {
       setSettingsSnapshotLoading_();
 
       google.script.run
-        .withSuccessHandler(renderSettingsSnapshotConfig_)
+        .withSuccessHandler(function(cfg) {
+          renderSettingsSnapshotConfig_(cfg);
+          if (successMessage) {
+            setSettingsSnapshotFormMessage_(successMessage);
+          }
+        })
         .withFailureHandler(function() {
           setSettingsSnapshotText_("settingsSnapshotEnabledText", "-");
           setSettingsSnapshotText_("settingsSnapshotDaysText", "-");
@@ -8392,6 +8832,99 @@ body {
           setSettingsSnapshotMessage_("โหลดการตั้งค่ารอบรายงานไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
         })
         .getSnapshotConfig();
+    }
+
+    function collectSettingsSnapshotPayload_() {
+      const enabled = document.getElementById("settings-cfg-enabled")?.checked === true;
+      const selectedDate = String(document.getElementById("settings-cfg-date")?.value ?? "").trim();
+      const selectedTime = String(document.getElementById("settings-cfg-time")?.value ?? "").trim();
+      let snapshotDay = "";
+      let hour = "";
+      let minute = "";
+
+      if (enabled) {
+        if (!selectedDate) {
+          throw new Error("กรุณาเลือกวันที่ Snapshot");
+        }
+
+        if (!selectedTime) {
+          throw new Error("กรุณากำหนดเวลา Snapshot");
+        }
+
+        const selectedDateObj = new Date(selectedDate + "T00:00:00");
+        if (Number.isNaN(selectedDateObj.getTime())) {
+          throw new Error("รูปแบบวันที่ Snapshot ไม่ถูกต้อง");
+        }
+
+        snapshotDay = String(selectedDateObj.getDate());
+        const timeParts = selectedTime.split(":");
+        hour = timeParts[0] || "";
+        minute = timeParts[1] || "";
+
+        const hourNumber = Number(hour);
+        const minuteNumber = Number(minute);
+
+        if (!Number.isInteger(hourNumber) || hourNumber < 0 || hourNumber > 23) {
+          throw new Error("ชั่วโมง Snapshot ต้องอยู่ระหว่าง 0-23");
+        }
+
+        if (!Number.isInteger(minuteNumber) || minuteNumber < 0 || minuteNumber > 59) {
+          throw new Error("นาที Snapshot ต้องอยู่ระหว่าง 0-59");
+        }
+      }
+
+      return {
+        enabled: enabled,
+        snapshot_days: snapshotDay || "",
+        snapshot_hour: hour || "",
+        snapshot_minute: minute || ""
+      };
+    }
+
+    function saveSettingsSnapshotConfig() {
+      if (!canViewAdminPage_()) return;
+
+      let payload;
+
+      try {
+        payload = collectSettingsSnapshotPayload_();
+      } catch (err) {
+        setSettingsSnapshotFormMessage_(err.message, "error");
+        if (typeof Swal !== "undefined") {
+          Swal.fire("⚠️", err.message, "warning");
+        }
+        return;
+      }
+
+      if (typeof google === "undefined" || !google.script || !google.script.run) {
+        setSettingsSnapshotFormMessage_("ยังไม่สามารถบันทึกผ่าน Apps Script ได้", "error");
+        return;
+      }
+
+      setSettingsSnapshotSaving_(true);
+      setSettingsSnapshotFormMessage_("กำลังบันทึกการตั้งค่า...");
+
+      google.script.run
+        .withSuccessHandler(function(msg) {
+          setSettingsSnapshotSaving_(false);
+          settingsSnapshotConfigLoadedAt = 0;
+          loadSettingsSnapshotConfig(true, msg || "บันทึกสำเร็จ");
+        })
+        .withFailureHandler(function(err) {
+          setSettingsSnapshotSaving_(false);
+          console.error(err);
+          setSettingsSnapshotFormMessage_("บันทึกการตั้งค่าไม่สำเร็จ", "error");
+        })
+        .saveSnapshotConfig(payload, window.currentUser?.username);
+    }
+
+    function initSettingsSnapshotFormEvents_() {
+      const enabledEl = document.getElementById("settings-cfg-enabled");
+      if (!enabledEl || enabledEl.dataset.bound === "1") return;
+
+      enabledEl.dataset.bound = "1";
+      enabledEl.addEventListener("change", syncSettingsSnapshotFormState_);
+      syncSettingsSnapshotFormState_();
     }
 
     function getAppPageForElement_(element) {
@@ -8765,19 +9298,19 @@ body {
       const summary = normalizeMonthlyCloseResponseSummary(monthlyCloseConsoleState.lastDryRunSummary || monthlyCloseConsoleState.data?.summary || {});
       const warningCount = Number(summary.warningCount || data?.summary?.warningCount || data?.quality?.warningCount || 0);
       const criticalCount = Number(summary.criticalCount || data?.summary?.criticalCount || data?.quality?.criticalCount || 0);
-      const notSubmitted = Number(summary.notSubmitted || data?.summary?.notSubmitted || 0);
+      const notEvaluable = Number(summary.notEvaluable || data?.summary?.notEvaluable || 0);
       const missingReportingFrequency = Number(summary.missingReportingFrequency || data?.summary?.missingReportingFrequency || 0);
       const missingEvaluateMode = Number(summary.missingEvaluateMode || data?.summary?.missingEvaluateMode || 0);
 
       if (criticalCount > 0) {
-        return "ยังปิดรอบไม่ได้ เพราะยังมีปัญหาสำคัญที่ต้องแก้ไข: " +
-          "ยังไม่ส่งข้อมูล " + notSubmitted + " รายการ, " +
+        return "ยังปิดรอบไม่ได้ เพราะยังมีปัญหาที่ห้ามปิดรอบ " + criticalCount + " รายการ: " +
+          "ส่งแล้วแต่ประเมินไม่ได้ " + notEvaluable + " รายการ, " +
           "ยังไม่ได้ตั้งค่ารอบรายงาน " + missingReportingFrequency + " รายการ, " +
           "ยังไม่ได้ตั้งค่าวิธีประเมินผล " + missingEvaluateMode + " รายการ";
       }
 
       if (warningCount > 0) {
-        return "ตรวจพบข้อควรแก้ไข " + warningCount + " รายการ แต่ไม่มีปัญหาสำคัญที่ห้ามปิดรอบ superadmin สามารถยืนยันปิดรอบได้";
+        return "ตรวจพบรายการที่ควรตรวจสอบ " + warningCount + " รายการ แต่ไม่มีปัญหาที่ห้ามปิดรอบ superadmin สามารถยืนยันปิดรอบได้";
       }
 
       const blockerSummary = data?.blockerSummary || {};
@@ -8796,7 +9329,7 @@ body {
               .join(", ");
         }
 
-        return "ยังปิดรอบไม่ได้ เพราะยังมีปัญหาสำคัญก่อนปิดรอบ";
+        return "ยังปิดรอบไม่ได้ เพราะยังมีปัญหาที่ห้ามปิดรอบ";
       }
 
       return "พร้อมปิดรอบรายเดือน";
@@ -8867,12 +9400,12 @@ body {
       return '' +
         '<div class="text-left text-sm leading-7 text-slate-700">' +
           '<div><strong>สถานะ:</strong> ยังไม่พร้อมปิดรอบ</div>' +
-          '<div class="mt-1"><strong>ปัญหาสำคัญ:</strong> ' + escapeHTML(String(data?.quality?.criticalCount || 0)) + ' | <strong>ข้อควรแก้ไข:</strong> ' + escapeHTML(String(data?.quality?.warningCount || 0)) + '</div>' +
+          '<div class="mt-1"><strong>ห้ามปิดรอบ:</strong> ' + escapeHTML(String(data?.quality?.criticalCount || 0)) + ' | <strong>ควรตรวจสอบ:</strong> ' + escapeHTML(String(data?.quality?.warningCount || 0)) + '</div>' +
           buildMonthlyCloseBlockerListHtml(blockerSummary) +
-          '<div class="mt-3"><strong>ตัวอย่างปัญหาสำคัญ:</strong></div>' +
-          buildMonthlyCloseIssuePreviewHtml(criticalIssues, "ยังไม่พบรายละเอียดปัญหาสำคัญ") +
-          '<div class="mt-3"><strong>ตัวอย่างข้อควรแก้ไข:</strong></div>' +
-          buildMonthlyCloseIssuePreviewHtml(warnings, "ยังไม่พบรายละเอียดข้อควรแก้ไข") +
+          '<div class="mt-3"><strong>ตัวอย่างปัญหาที่ห้ามปิดรอบ:</strong></div>' +
+          buildMonthlyCloseIssuePreviewHtml(criticalIssues, "ยังไม่พบรายละเอียดปัญหาที่ห้ามปิดรอบ") +
+          '<div class="mt-3"><strong>ตัวอย่างรายการที่ควรตรวจสอบ:</strong></div>' +
+          buildMonthlyCloseIssuePreviewHtml(warnings, "ยังไม่พบรายละเอียดรายการที่ควรตรวจสอบ") +
           '<div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">ดูรายการที่ต้องแก้ไขด้านล่างก่อนปิดรอบ</div>' +
         '</div>';
     }
@@ -8904,7 +9437,7 @@ function updateMonthlyCloseConsoleRoleState() {
         } else if (quality && quality.canClose === true) {
           hint.textContent = "สถานะปัจจุบันพร้อมปิดรอบ หากตรวจความพร้อมล่าสุดแล้วถูกต้อง สามารถกดปิดรอบจริงได้";
         } else {
-          hint.textContent = "ตรวจความพร้อมและรายการที่ต้องแก้ไขก่อนปิดรอบ ระบบจะไม่แนะนำให้ปิดรอบถ้ายังมีปัญหาสำคัญ";
+          hint.textContent = "ตรวจความพร้อมและรายการที่ต้องแก้ไขก่อนปิดรอบ ระบบจะปิดปุ่มไว้เฉพาะเมื่อยังมีปัญหาที่ห้ามปิดรอบ";
         }
       }
 
@@ -8928,6 +9461,7 @@ function updateMonthlyCloseConsoleRoleState() {
 
       if (closeHint) {
         closeHint.textContent = disableReason;
+        closeHint.classList.toggle("is-danger", Boolean(closeBtn && closeBtn.disabled));
       }
     }
 
@@ -9025,9 +9559,9 @@ function updateMonthlyCloseConsoleRoleState() {
 
       badgesEl.innerHTML = '' +
         '<span class="' + getMonthlyCloseInfoBadgeClass(quality.canClose === true ? "success" : "danger") + '">' +
-          (quality.canClose === true ? "พร้อม" : "ปัญหาสำคัญ " + Number(quality.criticalCount || 0)) +
+          (quality.canClose === true ? "พร้อม" : "ห้ามปิดรอบ " + Number(quality.criticalCount || 0)) +
         '</span>' +
-        '<span class="' + getMonthlyCloseInfoBadgeClass("warning") + '">ข้อควรแก้ไข ' + Number(quality.warningCount || 0) + '</span>' +
+        '<span class="' + getMonthlyCloseInfoBadgeClass("warning") + '">ควรตรวจสอบ ' + Number(quality.warningCount || 0) + '</span>' +
         '<span class="' + getMonthlyCloseInfoBadgeClass("") + '">ตรวจแล้ว ' + Number(preview.total || 0) + ' KPI</span>';
 
       const fieldText = topFields.length
@@ -9039,8 +9573,8 @@ function updateMonthlyCloseConsoleRoleState() {
       notesEl.innerHTML =
         '<div><strong>คำแนะนำ:</strong> ' +
           (quality.canClose === true
-            ? 'การตรวจล่าสุดไม่พบปัญหาสำคัญ และสามารถปิดรอบได้'
-            : 'ควรจัดการปัญหาสำคัญในรายการที่ต้องแก้ไขให้เรียบร้อยก่อนปิดรอบ') +
+            ? 'การตรวจล่าสุดไม่พบปัญหาที่ห้ามปิดรอบ และสามารถปิดรอบได้'
+            : 'ควรจัดการปัญหาที่ห้ามปิดรอบให้เรียบร้อยก่อนปิดรอบ') +
         '</div>' +
         '<div class="mt-1"><strong>ช่องข้อมูลที่พบปัญหาบ่อย:</strong> ' + fieldText + '</div>' +
         '<div class="mt-1"><strong>หมายเหตุ:</strong> การตรวจความพร้อมไม่บันทึกข้อมูลลง TaskHistory</div>';
@@ -9055,6 +9589,7 @@ function updateMonthlyCloseConsoleRoleState() {
           taskName: String(source.taskName || source.name || source.title || "-"),
           department: String(source.department || source.Department || "-"),
           assignee: String(source.assignee || source.Assignee || "-"),
+          severity: String(source.severity || source.level || "warning"),
           issueType: String(source.issueType || source.type || "warning"),
           reportingStatus: String(source.reportingStatus || source.status || "-"),
           issueText: String(source.issueText || source.message || source.warning || source.issue || "-"),
@@ -9068,13 +9603,180 @@ function updateMonthlyCloseConsoleRoleState() {
         groups: {
           warnings: {
             key: "warnings",
-            title: "ข้อควรแก้ไข",
+            title: "ควรตรวจสอบก่อนปิดรอบ",
             description: "รายการเตือนจากการตรวจความพร้อม",
             count: list.length,
             items: items
           }
         }
       };
+    }
+
+    function getMonthlyCloseQueueFilterState_() {
+      const searchEl = document.getElementById("monthlyCloseQueueSearch");
+      const groupEl = document.getElementById("monthlyCloseQueueGroupFilter");
+      const severityEl = document.getElementById("monthlyCloseQueueSeverityFilter");
+
+      return {
+        search: String(searchEl?.value || "").trim().toLowerCase(),
+        group: String(groupEl?.value || "all"),
+        severity: String(severityEl?.value || "all")
+      };
+    }
+
+    function resetMonthlyCloseQueueFilters() {
+      const searchEl = document.getElementById("monthlyCloseQueueSearch");
+      const groupEl = document.getElementById("monthlyCloseQueueGroupFilter");
+      const severityEl = document.getElementById("monthlyCloseQueueSeverityFilter");
+
+      if (searchEl) searchEl.value = "";
+      if (groupEl) groupEl.value = "all";
+      if (severityEl) severityEl.value = "all";
+
+      renderMonthlyCloseExceptionQueue(monthlyCloseConsoleState.data);
+    }
+
+    function getMonthlyCloseQueueGroupKeys_(groups) {
+      const preferred = ["warnings", "notSubmitted", "notEvaluable", "configIncomplete", "notDue"];
+      const extra = Object.keys(groups || {}).filter(function(key) {
+        return !preferred.includes(key);
+      });
+      return preferred.concat(extra);
+    }
+
+    function getMonthlyCloseQueueSeverity_(item, groupKey) {
+      if (groupKey === "notSubmitted" || groupKey === "configIncomplete" || groupKey === "warnings") {
+        return "warning";
+      }
+
+      if (groupKey === "notDue") {
+        return "info";
+      }
+
+      if (groupKey === "notEvaluable") {
+        return "critical";
+      }
+
+      const raw = [
+        item?.severity,
+        item?.level,
+        item?.issueSeverity,
+        item?.issueType
+      ].map(function(value) {
+        return String(value || "").toLowerCase();
+      }).join(" ");
+
+      if (raw.includes("critical") || raw.includes("blocker") || raw.includes("สำคัญ")) {
+        return "critical";
+      }
+      if (raw.includes("info")) {
+        return "info";
+      }
+      return "warning";
+    }
+
+    function getMonthlyCloseQueueSeverityLabel_(severity) {
+      if (severity === "critical") return "ห้ามปิดรอบ";
+      if (severity === "info") return "ข้อมูลประกอบ";
+      return "ควรตรวจสอบ";
+    }
+
+    function getMonthlyCloseQueueGroupSeverity_(items, groupKey) {
+      const severities = (Array.isArray(items) ? items : []).map(function(item) {
+        return getMonthlyCloseQueueSeverity_(item, groupKey);
+      });
+
+      if (severities.includes("critical")) return "critical";
+      if (severities.includes("warning")) return "warning";
+      return "info";
+    }
+
+    function getMonthlyCloseQueueChipClass_(kind, value) {
+      const raw = String(value || "").toLowerCase();
+
+      if (kind === "severity") {
+        if (raw === "critical") return "close-console__queue-chip is-critical";
+        if (raw === "info") return "close-console__queue-chip is-info";
+        return "close-console__queue-chip is-warning";
+      }
+
+      if (kind === "status") {
+        if (raw === "submitted" || raw === "evaluable") return "close-console__queue-chip is-success";
+        if (raw === "notdue") return "close-console__queue-chip is-info";
+        if (raw === "notsubmitted" || raw === "notevaluable") return "close-console__queue-chip is-warning";
+        return "close-console__queue-chip is-muted";
+      }
+
+      if (kind === "issue") {
+        if (raw.includes("reporting") || raw.includes("evaluate") || raw.includes("target") || raw.includes("config")) {
+          return "close-console__queue-chip is-config";
+        }
+        if (raw.includes("critical")) return "close-console__queue-chip is-critical";
+        if (raw.includes("warning")) return "close-console__queue-chip is-warning";
+      }
+
+      return "close-console__queue-chip is-muted";
+    }
+
+    function itemMatchesMonthlyCloseQueueFilters_(item, groupKey, filters) {
+      const severity = getMonthlyCloseQueueSeverity_(item, groupKey);
+
+      if (filters.group !== "all" && filters.group !== groupKey) return false;
+      if (filters.severity !== "all" && filters.severity !== severity) return false;
+
+      if (!filters.search) return true;
+
+      const tagText = Array.isArray(item?.tags) ? item.tags.join(" ") : "";
+      const searchable = [
+        item?.taskId,
+        item?.taskName,
+        item?.department,
+        item?.workGroup,
+        item?.assignee,
+        item?.issueType,
+        item?.reportingStatus,
+        item?.issueText,
+        item?.recommendedAction,
+        tagText
+      ].join(" ").toLowerCase();
+
+      return searchable.includes(filters.search);
+    }
+
+    function buildMonthlyCloseQueueItemHtml_(item, group, groupKey) {
+      const severity = getMonthlyCloseQueueSeverity_(item, groupKey);
+      const statusLabel = getMonthlyCloseExportStatusLabel_(item.reportingStatus || "");
+      const rowNumber = item.rowNumber ? "แถวข้อมูล " + item.rowNumber : "";
+      const tagHtml = Array.isArray(item.tags) && item.tags.length
+        ? item.tags.slice(0, 3).map(function(tag) {
+            return '<span class="close-console__queue-chip is-muted">' + escapeHTML(tag) + '</span>';
+          }).join("")
+        : "";
+
+      const workGroupHtml = item.workGroup
+        ? '<span class="close-console__queue-chip is-muted">' + escapeHTML(item.workGroup) + '</span>'
+        : "";
+
+      return '' +
+        '<article class="close-console__queue-item is-' + escapeHTML(severity) + '">' +
+          '<div class="close-console__queue-top">' +
+            '<div>' +
+              '<div class="close-console__queue-name">' + escapeHTML((item.taskId || "-") + " | " + (item.taskName || "-")) + '</div>' +
+              (rowNumber ? '<div class="close-console__queue-row">' + escapeHTML(rowNumber) + '</div>' : '') +
+              '<div class="close-console__queue-meta">' +
+                '<span class="' + getMonthlyCloseQueueChipClass_("severity", severity) + '">' + escapeHTML(getMonthlyCloseQueueSeverityLabel_(severity)) + '</span>' +
+                '<span class="close-console__queue-chip is-muted">' + escapeHTML(item.department || "-") + '</span>' +
+                workGroupHtml +
+                '<span class="close-console__queue-chip is-muted">' + escapeHTML(item.assignee || "-") + '</span>' +
+                '<span class="' + getMonthlyCloseQueueChipClass_("issue", item.issueType || group.title || "-") + '">' + escapeHTML(item.issueType || group.title || "-") + '</span>' +
+                '<span class="' + getMonthlyCloseQueueChipClass_("status", item.reportingStatus || "") + '">' + escapeHTML(statusLabel || item.reportingStatus || "-") + '</span>' +
+                tagHtml +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="close-console__queue-issue"><strong>ปัญหา:</strong> ' + escapeHTML(item.issueText || "-") + '</div>' +
+          '<div class="close-console__queue-action"><strong>ควรทำ:</strong> ' + escapeHTML(item.recommendedAction || "-") + '</div>' +
+        '</article>';
     }
 
     function renderMonthlyCloseExceptionQueue(data) {
@@ -9090,65 +9792,74 @@ function updateMonthlyCloseConsoleRoleState() {
         ? data.exceptionQueue
         : (warnings.length ? buildMonthlyCloseWarningsQueueFromResponse_(warnings) : data?.exceptionQueue);
       const groups = queue?.groups || {};
-      const keys = queue?.groups && queue.groups.warnings
-        ? ["warnings", "notSubmitted", "notEvaluable", "configIncomplete", "notDue"]
-        : ["notSubmitted", "notEvaluable", "configIncomplete", "notDue"];
-      const shouldExpandAll = data?.quality?.canClose !== true;
+      const keys = getMonthlyCloseQueueGroupKeys_(groups);
+      const filters = getMonthlyCloseQueueFilterState_();
+      const hasActiveFilter = filters.group !== "all" || filters.severity !== "all" || Boolean(filters.search);
+      const shouldExpandAll = data?.quality?.canClose !== true || hasActiveFilter;
+      let totalItems = Number(queue?.totalItems || 0);
+      let filteredTotal = 0;
 
-      if (!queue || !queue.totalItems) {
+      if (!queue || !totalItems) {
         container.innerHTML = '<div class="close-console__empty">ไม่พบรายการที่ต้องติดตามเพิ่มเติมในตอนนี้</div>';
         return;
       }
 
-      container.innerHTML = keys.map(function(key, index) {
+      const groupHtml = keys.map(function(key, index) {
         const group = groups[key];
         if (!group) return "";
 
-        const itemsHtml = Array.isArray(group.items) && group.items.length
-          ? group.items.slice(0, 20).map(function(item) {
-              const tagHtml = Array.isArray(item.tags) && item.tags.length
-                ? item.tags.slice(0, 3).map(function(tag) {
-                    return '<span class="close-console__queue-chip">' + escapeHTML(tag) + '</span>';
-                  }).join("")
-                : "";
+        const allItems = Array.isArray(group.items) ? group.items : [];
+        const filteredItems = allItems.filter(function(item) {
+          return itemMatchesMonthlyCloseQueueFilters_(item, key, filters);
+        });
+        const displayItems = filteredItems.slice(0, 30);
+        const groupSeverity = getMonthlyCloseQueueGroupSeverity_(filteredItems, key);
+        const groupCountClass = "close-console__queue-count is-" + groupSeverity;
+        filteredTotal += filteredItems.length;
 
-              return '' +
-                '<article class="close-console__queue-item">' +
-                  '<div class="close-console__queue-top">' +
-                    '<div>' +
-                      '<div class="close-console__queue-name">' + escapeHTML((item.taskId || "-") + " | " + (item.taskName || "-")) + '</div>' +
-                      '<div class="close-console__queue-meta">' +
-                        '<span class="close-console__queue-chip">' + escapeHTML(item.department || "-") + '</span>' +
-                        '<span class="close-console__queue-chip">' + escapeHTML(item.assignee || "-") + '</span>' +
-                        '<span class="close-console__queue-chip">' + escapeHTML(item.issueType || group.title || "-") + '</span>' +
-                        '<span class="close-console__queue-chip">' + escapeHTML(item.reportingStatus || "-") + '</span>' +
-                        tagHtml +
-                      '</div>' +
-                    '</div>' +
-                  '</div>' +
-                  '<div class="close-console__queue-issue"><strong>ปัญหา:</strong> ' + escapeHTML(item.issueText || "-") + '</div>' +
-                  '<div class="close-console__queue-action"><strong>Action แนะนำ:</strong> ' + escapeHTML(item.recommendedAction || "-") + '</div>' +
-                '</article>';
+        if (filters.group !== "all" && filters.group !== key) return "";
+        if (hasActiveFilter && !filteredItems.length) return "";
+
+        const itemsHtml = displayItems.length
+          ? displayItems.map(function(item) {
+              return buildMonthlyCloseQueueItemHtml_(item, group, key);
             }).join("") +
             (
-              Number(group.count || 0) > 20
-                ? '<div class="close-console__empty">แสดง 20 รายการแรก และมีอีก ' + escapeHTML(String(Number(group.count || 0) - 20)) + ' รายการ</div>'
+              filteredItems.length > 30
+                ? '<div class="close-console__empty">แสดง 30 รายการแรกจากตัวกรองนี้ และมีอีก ' + escapeHTML(String(filteredItems.length - 30)) + ' รายการ</div>'
                 : ''
             )
-          : '<div class="close-console__empty">ไม่พบรายการในกลุ่มนี้</div>';
+          : '<div class="close-console__empty">ไม่พบรายการในกลุ่มนี้ตามตัวกรองที่เลือก</div>';
 
         return '' +
-          '<details class="close-console__queue-group" ' + ((shouldExpandAll || index < 2) && Number(group.count || 0) > 0 ? "open" : "") + '>' +
+          '<details class="close-console__queue-group" ' + ((shouldExpandAll || index < 2) && filteredItems.length > 0 ? "open" : "") + '>' +
             '<summary>' +
               '<div>' +
                 '<div class="close-console__queue-title">' + escapeHTML(group.title || "-") + '</div>' +
                 '<div class="close-console__queue-desc">' + escapeHTML(group.description || "") + '</div>' +
               '</div>' +
-              '<span class="close-console__queue-count">' + escapeHTML(String(group.count || 0)) + '</span>' +
+              '<span class="' + groupCountClass + '">' + escapeHTML(String(filteredItems.length)) + '</span>' +
             '</summary>' +
             '<div class="close-console__queue-items">' + itemsHtml + '</div>' +
           '</details>';
       }).join("");
+
+      const activeFilterText = [
+        filters.search ? 'ค้นหา "' + escapeHTML(filters.search) + '"' : "",
+        filters.group !== "all" ? "กลุ่มที่เลือก" : "",
+        filters.severity !== "all" ? getMonthlyCloseQueueSeverityLabel_(filters.severity) : ""
+      ].filter(Boolean).join(" | ");
+
+      container.innerHTML =
+        '<div class="close-console__queue-summary">' +
+          '<span>แสดง ' + escapeHTML(String(filteredTotal)) + ' จาก ' + escapeHTML(String(totalItems)) + ' รายการ</span>' +
+          '<span>' + (activeFilterText ? 'ตัวกรอง: ' + activeFilterText : 'ใช้ตัวกรองด้านบนเพื่อแยกรายการที่ต้องแก้ก่อนปิดรอบ') + '</span>' +
+        '</div>' +
+        (
+          filteredTotal > 0
+            ? groupHtml
+            : '<div class="close-console__empty">ไม่พบรายการตามตัวกรองที่เลือก</div>'
+        );
     }
 
     function getMonthlyCloseExceptionQueueForExport_() {
@@ -9538,7 +10249,7 @@ function updateMonthlyCloseConsoleRoleState() {
             Swal.fire({
               icon: isReadinessWarning ? "warning" : "success",
               title: isReadinessWarning
-                ? "ตรวจความพร้อมเสร็จแล้ว แต่พบข้อควรแก้ไข"
+                ? "ตรวจความพร้อมเสร็จแล้ว แต่มีรายการที่ควรตรวจสอบ"
                 : "ตรวจความพร้อมเสร็จแล้ว",
               confirmButtonText: "ตกลง",
               html:
@@ -9549,10 +10260,10 @@ function updateMonthlyCloseConsoleRoleState() {
                   '<div><strong>ยังไม่ส่งข้อมูล:</strong> ' + escapeHTML(String(summary.notSubmitted || 0)) + ' รายการ</div>' +
                   '<div><strong>ยังไม่ได้ตั้งค่ารอบรายงาน:</strong> ' + escapeHTML(String(summary.missingReportingFrequency || 0)) + ' รายการ</div>' +
                   '<div><strong>ยังไม่ได้ตั้งค่าวิธีประเมินผล:</strong> ' + escapeHTML(String(summary.missingEvaluateMode || 0)) + ' รายการ</div>' +
-                  '<div><strong>ปัญหาสำคัญ:</strong> ' + escapeHTML(String(criticalCount || 0)) + ' | <strong>ข้อควรแก้ไข:</strong> ' + escapeHTML(String(warningCount || 0)) + '</div>' +
+                  '<div><strong>ห้ามปิดรอบ:</strong> ' + escapeHTML(String(criticalCount || 0)) + ' | <strong>ควรตรวจสอบ:</strong> ' + escapeHTML(String(warningCount || 0)) + '</div>' +
                   '<div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">' +
                     (isReadinessWarning
-                      ? 'ตรวจรายการที่ต้องแก้ไขด้านล่างก่อนปิดรอบ'
+                      ? 'ตรวจรายการด้านล่างก่อนปิดรอบ หากไม่มีรายการห้ามปิดรอบ superadmin ยังยืนยันปิดรอบได้'
                       : 'การตรวจนี้ไม่บันทึกข้อมูลลง TaskHistory') +
                   '</div>' +
                 '</div>'
@@ -9615,7 +10326,7 @@ function updateMonthlyCloseConsoleRoleState() {
           Swal.fire({
             icon: "warning",
             title: hasCriticalIssue
-              ? "ยังปิดรอบไม่ได้ เพราะยังมีปัญหาสำคัญ"
+              ? "ยังปิดรอบไม่ได้ เพราะยังมีปัญหาที่ห้ามปิดรอบ"
               : "ยังไม่พร้อมปิดรอบ",
             confirmButtonText: "ตกลง",
             html: buildMonthlyCloseNotReadyHtml(currentData)
@@ -9646,7 +10357,7 @@ function updateMonthlyCloseConsoleRoleState() {
             '<div><strong>ยังไม่ถึงรอบ:</strong> ' + escapeHTML(String(currentData?.preview?.notDue || 0)) + ' รายการ</div>' +
             '<div><strong>ยังไม่ส่งข้อมูล:</strong> ' + escapeHTML(String(currentData?.preview?.notSubmitted || 0)) + ' รายการ</div>' +
             (warningCount > 0
-              ? '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ยังมีข้อควรแก้ไข ' + escapeHTML(String(warningCount)) + ' รายการ แต่ไม่มีปัญหาสำคัญที่ห้ามปิดรอบ โปรดตรวจสอบก่อนยืนยัน</div>'
+              ? '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ยังมีรายการที่ควรตรวจสอบ ' + escapeHTML(String(warningCount)) + ' รายการ แต่ไม่มีปัญหาที่ห้ามปิดรอบ โปรดตรวจสอบก่อนยืนยัน</div>'
               : '') +
             '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ระบบจะบันทึกข้อมูลรอบนี้ ล้างค่ารายเดือนเดิม และเลื่อนไปยังรอบถัดไปทันที</div>' +
           '</div>'
@@ -9780,6 +10491,7 @@ function updateMonthlyCloseConsoleRoleState() {
     });
 
     initSidebarNavigation();
+    initSettingsSnapshotFormEvents_();
     showAppPage(getAppPageFromHash_(), {
       updateHash: false,
       scrollTop: false
