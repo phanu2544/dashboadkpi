@@ -8123,7 +8123,9 @@ body {
         title: "ภาพรวมผู้บริหาร",
         description: "ดูภาพรวมรอบรายงานปัจจุบัน รายการที่ควรติดตาม และสรุปตามหมวดหมู่",
         toolbarLabel: "ภาพรวมระบบติดตามตัวชี้วัด",
-        toolbarDesc: "สรุปสถานะข้อมูลและผลประเมินสำหรับการติดตามภาพรวม"
+        toolbarDesc: "สรุปสถานะข้อมูลและผลประเมินสำหรับการติดตามภาพรวม",
+        showAddTask: false,
+        showExport: true
       },
       kpi: {
         menuKey: "kpi",
@@ -8132,7 +8134,9 @@ body {
         title: "ตัวชี้วัดและการกรอกข้อมูล",
         description: "ค้นหา กรอง กรอกข้อมูล และตรวจสถานะตัวชี้วัดรายรายการ",
         toolbarLabel: "รายการตัวชี้วัด",
-        toolbarDesc: "ทำงานกับข้อมูล KPI และรายการที่ถึงรอบรายงาน"
+        toolbarDesc: "ทำงานกับข้อมูล KPI และรายการที่ถึงรอบรายงาน",
+        showAddTask: true,
+        showExport: true
       },
       report: {
         menuKey: "report",
@@ -8141,7 +8145,9 @@ body {
         title: "รายงานและแนวโน้ม",
         description: "ดูแนวโน้มรายเดือนและส่งออกรายงานสำหรับติดตามผลหลังปิดรอบ",
         toolbarLabel: "รายงาน",
-        toolbarDesc: "ดูแนวโน้มย้อนหลังและส่งออกข้อมูลตามสิทธิ์ผู้ใช้งาน"
+        toolbarDesc: "ดูแนวโน้มย้อนหลังและส่งออกข้อมูลตามสิทธิ์ผู้ใช้งาน",
+        showAddTask: false,
+        showExport: true
       },
       admin: {
         menuKey: "users",
@@ -8150,7 +8156,9 @@ body {
         title: "ผู้ใช้งานและตั้งค่าระบบ",
         description: "รวมงานจัดการบัญชี สิทธิ์ และทางลัดสำหรับงานผู้ดูแลระบบไว้ในที่เดียว",
         toolbarLabel: "ศูนย์จัดการผู้ดูแลระบบ",
-        toolbarDesc: "เลือกงานผู้ดูแลระบบที่ต้องการทำจากการ์ดด้านล่าง"
+        toolbarDesc: "เลือกงานผู้ดูแลระบบที่ต้องการทำจากการ์ดด้านล่าง",
+        showAddTask: false,
+        showExport: false
       },
       settings: {
         menuKey: "settings",
@@ -8159,7 +8167,9 @@ body {
         title: "ตั้งค่าระบบ",
         description: "รวมทางลัดสำหรับรอบรายงาน คู่มือ CSV และงานตั้งค่าที่เกี่ยวข้องกับผู้ดูแลระบบ",
         toolbarLabel: "ตั้งค่าระบบรายงาน",
-        toolbarDesc: "ตั้งค่าระบบแยกจากหน้าผู้ใช้งาน เพื่อให้เลือกงานได้ชัดเจนขึ้น"
+        toolbarDesc: "ตั้งค่าระบบแยกจากหน้าผู้ใช้งาน เพื่อให้เลือกงานได้ชัดเจนขึ้น",
+        showAddTask: false,
+        showExport: false
       },
       monthlyClose: {
         menuKey: "monthlyClose",
@@ -8168,7 +8178,9 @@ body {
         title: "ปิดรอบรายเดือน",
         description: "โหลดสถานะ ตรวจความพร้อม ดาวน์โหลดรายการตรวจสอบ และปิดรอบจริงอย่างเป็นขั้นตอน",
         toolbarLabel: "การปิดรอบรายเดือน",
-        toolbarDesc: "พื้นที่ทำงานสำหรับผู้ดูแลระบบก่อนบันทึกข้อมูลเข้าประวัติ"
+        toolbarDesc: "พื้นที่ทำงานสำหรับผู้ดูแลระบบก่อนบันทึกข้อมูลเข้าประวัติ",
+        showAddTask: false,
+        showExport: false
       }
     };
 
@@ -8196,6 +8208,29 @@ body {
       if (eyebrow) eyebrow.textContent = config.eyebrow;
       if (title) title.textContent = config.title;
       if (desc) desc.textContent = config.description;
+    }
+
+    function canUseAddTaskToolbar_() {
+      const role = String(window.currentUser?.role || "");
+      return role === "user" || role === "admin" || role === "superadmin";
+    }
+
+    function updateAppToolbarActions_(pageKey) {
+      const config = appPageConfig[pageKey] || appPageConfig.dashboard;
+      const addTaskBtn = document.getElementById("addTaskBtn");
+      const exportBtn = document.getElementById("exportBtn");
+
+      if (addTaskBtn) {
+        addTaskBtn.style.display = config.showAddTask === true && canUseAddTaskToolbar_()
+          ? "inline-block"
+          : "none";
+      }
+
+      if (exportBtn) {
+        exportBtn.style.display = config.showExport === false
+          ? "none"
+          : "inline-block";
+      }
     }
 
     function getAppPageForElement_(element) {
@@ -8251,6 +8286,7 @@ body {
       });
 
       updateAppPageCopy_(nextPage);
+      updateAppToolbarActions_(nextPage);
       setSidebarActive(config.menuKey);
 
       if (options.updateHash !== false && config.hash) {
@@ -9627,12 +9663,7 @@ function updateMonthlyCloseConsoleRoleState() {
            
 
 
-            // ✅ แสดงปุ่มเพิ่มงานเฉพาะ user/admin
-            if (window.currentUser?.role === 'user' || window.currentUser?.role === 'admin' || window.currentUser?.role === 'superadmin') {
-              document.getElementById('addTaskBtn').style.display = 'inline-block';
-            } else {
-              document.getElementById('addTaskBtn').style.display = 'none';
-            }
+            updateAppToolbarActions_(currentAppPage);
 
             // ✅ แสดงปุ่มจัดการผู้ใช้เฉพาะ admin
             if (window.currentUser?.role === 'superadmin') {
