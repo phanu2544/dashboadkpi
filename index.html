@@ -3008,7 +3008,8 @@ textarea {
   box-shadow: var(--h-shadow) !important;
 }
 
-#adminControlCenter {
+#adminControlCenter,
+#settingsControlCenter {
   margin: 0 16px 24px;
 }
 
@@ -6055,8 +6056,8 @@ body {
                       <button type="button"
                         class="app-sidebar__link"
                         data-sidebar-menu="settings"
-                        data-sidebar-page="admin"
-                        data-sidebar-target="adminControlCenter">
+                        data-sidebar-page="settings"
+                        data-sidebar-target="settingsControlCenter">
                         <span class="app-sidebar__icon">S</span>
                         <span class="app-sidebar__text">
                           <span class="app-sidebar__name">ตั้งค่า</span>
@@ -6211,16 +6212,16 @@ body {
                       <div class="admin-control-card__kicker">Settings</div>
                       <h3 class="admin-control-card__title">ตั้งค่าระบบรายงาน</h3>
                       <p class="admin-control-card__desc">
-                        ใช้หน้าจัดการเดิมเพื่อตรวจการตั้งค่ารอบรายงานและการตั้งค่าที่เกี่ยวข้องกับผู้ดูแลระบบ
+                        เปิดหน้าตั้งค่าระบบแยกจากหน้าผู้ใช้งาน เพื่อลดความสับสนระหว่างงานดูแลบัญชีและงานตั้งค่ารอบรายงาน
                       </p>
                     </div>
                     <div>
                       <div class="admin-control-card__meta">
-                        <span class="admin-control-chip">ไม่เปลี่ยน logic</span>
-                        <span class="admin-control-chip">ใช้ flow เดิม</span>
+                        <span class="admin-control-chip">หน้าแยกใหม่</span>
+                        <span class="admin-control-chip">ใช้ function เดิม</span>
                       </div>
                       <button type="button"
-                        onclick="openUserModal()"
+                        onclick="showAppPage('settings', { updateHash: true, scrollTop: true })"
                         class="kpi-action-btn kpi-action-btn--secondary mt-4">
                         เปิดหน้าตั้งค่า
                       </button>
@@ -6244,6 +6245,73 @@ body {
                         onclick="focusMonthlyCloseManagementConsole()"
                         class="kpi-action-btn kpi-action-btn--danger mt-4">
                         ไปที่ปิดรอบรายเดือน
+                      </button>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section id="settingsControlCenter" class="kpi-section-card app-settings-control hidden" data-app-page="settings" aria-label="หน้าตั้งค่าระบบ">
+                <div class="admin-control-grid">
+                  <article class="admin-control-card">
+                    <div>
+                      <div class="admin-control-card__kicker">Reporting Period</div>
+                      <h3 class="admin-control-card__title">รอบรายงานและการปิดรอบ</h3>
+                      <p class="admin-control-card__desc">
+                        ตรวจสถานะรอบปัจจุบัน โหลดความพร้อมก่อนปิดรอบ และเข้าไปทำขั้นตอนปิดรอบจริงจากคอนโซลเฉพาะ
+                      </p>
+                    </div>
+                    <div>
+                      <div class="admin-control-card__meta">
+                        <span class="admin-control-chip">ไม่บันทึกทันที</span>
+                        <span class="admin-control-chip">ผ่านคอนโซลเดิม</span>
+                      </div>
+                      <button type="button"
+                        onclick="focusMonthlyCloseManagementConsole()"
+                        class="kpi-action-btn kpi-action-btn--warning mt-4">
+                        ไปคอนโซลปิดรอบ
+                      </button>
+                    </div>
+                  </article>
+
+                  <article class="admin-control-card">
+                    <div>
+                      <div class="admin-control-card__kicker">Close Checklist</div>
+                      <h3 class="admin-control-card__title">คู่มือและ CSV ก่อนปิดรอบ</h3>
+                      <p class="admin-control-card__desc">
+                        เปิดคู่มือรายการที่ควรแก้ ดูคำอธิบายคอลัมน์ และใช้เมนูส่งออก CSV ในคอนโซลปิดรอบ
+                      </p>
+                    </div>
+                    <div>
+                      <div class="admin-control-card__meta">
+                        <span class="admin-control-chip">สำหรับตรวจข้อมูล</span>
+                        <span class="admin-control-chip">ไม่แก้ข้อมูล</span>
+                      </div>
+                      <button type="button"
+                        onclick="openMonthlyCloseCsvManual()"
+                        class="kpi-action-btn kpi-action-btn--secondary mt-4">
+                        เปิดคู่มือ CSV
+                      </button>
+                    </div>
+                  </article>
+
+                  <article class="admin-control-card">
+                    <div>
+                      <div class="admin-control-card__kicker">Users & Roles</div>
+                      <h3 class="admin-control-card__title">ผู้ใช้งานและสิทธิ์</h3>
+                      <p class="admin-control-card__desc">
+                        งานจัดการบัญชีแยกไปอยู่หน้าผู้ใช้งาน เพื่อให้หน้าตั้งค่าโฟกัสเฉพาะงานระบบและรอบรายงาน
+                      </p>
+                    </div>
+                    <div>
+                      <div class="admin-control-card__meta">
+                        <span class="admin-control-chip">เฉพาะ superadmin</span>
+                        <span class="admin-control-chip">แยกหมวดแล้ว</span>
+                      </div>
+                      <button type="button"
+                        onclick="showAppPage('admin', { updateHash: true, scrollTop: true })"
+                        class="kpi-action-btn kpi-action-btn--primary mt-4">
+                        ไปหน้าผู้ใช้งาน
                       </button>
                     </div>
                   </article>
@@ -8084,6 +8152,15 @@ body {
         toolbarLabel: "ศูนย์จัดการผู้ดูแลระบบ",
         toolbarDesc: "เลือกงานผู้ดูแลระบบที่ต้องการทำจากการ์ดด้านล่าง"
       },
+      settings: {
+        menuKey: "settings",
+        hash: "settings",
+        eyebrow: "Settings",
+        title: "ตั้งค่าระบบ",
+        description: "รวมทางลัดสำหรับรอบรายงาน คู่มือ CSV และงานตั้งค่าที่เกี่ยวข้องกับผู้ดูแลระบบ",
+        toolbarLabel: "ตั้งค่าระบบรายงาน",
+        toolbarDesc: "ตั้งค่าระบบแยกจากหน้าผู้ใช้งาน เพื่อให้เลือกงานได้ชัดเจนขึ้น"
+      },
       monthlyClose: {
         menuKey: "monthlyClose",
         hash: "monthly-close",
@@ -8151,7 +8228,7 @@ body {
       }
 
       if (
-        nextPage === "admin" &&
+        (nextPage === "admin" || nextPage === "settings") &&
         !canViewAdminPage_()
       ) {
         nextPage = "dashboard";
@@ -8165,8 +8242,12 @@ body {
         const pages = String(section.dataset.appPage || "")
           .split(/\s+/)
           .filter(Boolean);
+        const isVisiblePage = pages.indexOf(nextPage) !== -1;
 
-        section.classList.toggle("app-page-hidden", pages.indexOf(nextPage) === -1);
+        section.classList.toggle("app-page-hidden", !isVisiblePage);
+        if (section.id === "adminControlCenter" || section.id === "settingsControlCenter") {
+          section.classList.toggle("hidden", !isVisiblePage);
+        }
       });
 
       updateAppPageCopy_(nextPage);
@@ -8341,7 +8422,7 @@ body {
       }
 
       if (
-        currentAppPage === "admin" &&
+        (currentAppPage === "admin" || currentAppPage === "settings") &&
         !canViewAdminPage_()
       ) {
         showAppPage("dashboard", {
