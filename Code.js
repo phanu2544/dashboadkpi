@@ -2458,11 +2458,9 @@ if (!mode) {
         // ✅ Level Rule Quality
         // =========================
         if (mode === "level") {
-          const levelOrder = normalizeDQText(row.LevelOrder);
-          const targetLevelText = normalizeDQText(row.TargetLevelText);
-          const targetLevelRank = row.TargetLevelRank;
+          const levelRule = getLevelTargetRule_(row);
 
-          if (!levelOrder) {
+          if (!levelRule.levelOrder.length) {
             addDQIssue_(
               issues,
               "critical",
@@ -2472,12 +2470,12 @@ if (!mode) {
             );
           }
 
-          if (!targetLevelText || !isDQNumber_(targetLevelRank)) {
+          if (!levelRule.targetLevel || levelRule.targetRank === -1) {
             addDQIssue_(
               issues,
               "critical",
               row,
-              "TargetLevelText/TargetLevelRank",
+              "TargetValue/LevelOrder",
               "ตัวชี้วัดแบบระดับต้องมีระดับเป้าหมาย"
             );
           }
@@ -3992,11 +3990,7 @@ function isTargetRuleMissingForReadiness_(row) {
   }
 
   if (mode === "level") {
-    return (
-      !normalizeDQText(row.LevelOrder) ||
-      !normalizeDQText(row.TargetLevelText) ||
-      !isDQNumber_(row.TargetLevelRank)
-    );
+    return !getLevelTargetRule_(row).isValid;
   }
 
   if (mode === "passfail") {
@@ -5305,7 +5299,7 @@ function resetMonthlyTaskProgress(currentUsername) {
 
 
 function evaluateAchievement(task) {
-  const mode = String(task.EvaluateMode || task.ProgressMode || '').trim();
+  const mode = String(task.EvaluateMode || task.ProgressMode || '').trim().toLowerCase();
   const operator = String(task.TargetOperator || '').trim();
   const unit = String(task.BaselineUnit || task.OutcomeUnit || '').trim();
 
@@ -5392,17 +5386,24 @@ function evaluateAchievement(task) {
   // level
   // =========================
   if (mode === 'level') {
+    const levelRule = getLevelTargetRule_(task);
+    const targetLevel = levelRule.targetLevel;
+    const targetRank = levelRule.targetRank;
+    const targetText = task.TargetText || targetLevel;
     const resultText = String(task.ProgressOutcome || '').trim();
 
     if (!resultText) {
-      return noData;
+      return {
+        ...noData,
+        TargetLevelText: targetLevel,
+        TargetLevelRank: targetRank !== -1 ? targetRank : '',
+        TargetText: targetText
+      };
     }
 
-    const levelOrder = splitCsv(task.LevelOrder || task.Outcomes);
-    const targetLevel = String(task.TargetValue || task.TargetLevelText || '').trim();
+    const levelOrder = levelRule.levelOrder;
 
     const resultRank = levelOrder.indexOf(resultText);
-    const targetRank = levelOrder.indexOf(targetLevel);
 
     // ถ้ามี LevelOrder และ TargetValue ชัดเจน ใช้ rank คำนวณ
     if (levelOrder.length && resultRank !== -1 && targetRank !== -1) {
@@ -5483,6 +5484,27 @@ function splitCsv(value) {
     .split(',')
     .map(v => v.trim())
     .filter(Boolean);
+}
+
+function getLevelTargetRule_(task) {
+  const source = task || {};
+  const rawTargetLevel = (
+    source.TargetValue !== undefined &&
+    source.TargetValue !== null &&
+    String(source.TargetValue).trim() !== ''
+  )
+    ? source.TargetValue
+    : source.TargetLevelText;
+  const levelOrder = splitCsv(source.LevelOrder || source.Outcomes);
+  const targetLevel = String(rawTargetLevel || '').trim();
+  const targetRank = levelOrder.indexOf(targetLevel);
+
+  return {
+    levelOrder,
+    targetLevel,
+    targetRank,
+    isValid: levelOrder.length > 0 && !!targetLevel && targetRank !== -1
+  };
 }
 
 function normalizePercentNumber_(value, mode, unit) {
@@ -5777,8 +5799,6 @@ function cancelTaskMonthlySubmission(taskId, cancelledBy) {
     const resultTextCol = col("ResultText");
     const resultLevelTextCol = col("ResultLevelText");
     const resultLevelRankCol = col("ResultLevelRank");
-    const targetLevelTextCol = col("TargetLevelText");
-    const targetLevelRankCol = col("TargetLevelRank");
     const achievementStatusCol = col("AchievementStatus");
     const achievementTextCol = col("AchievementText");
 
@@ -5883,14 +5903,6 @@ function cancelTaskMonthlySubmission(taskId, cancelledBy) {
 
       if (resultLevelRankCol !== -1) {
         sheet.getRange(rowNumber, resultLevelRankCol + 1).setValue("");
-      }
-
-      if (targetLevelTextCol !== -1) {
-        sheet.getRange(rowNumber, targetLevelTextCol + 1).setValue("");
-      }
-
-      if (targetLevelRankCol !== -1) {
-        sheet.getRange(rowNumber, targetLevelRankCol + 1).setValue("");
       }
 
       if (achievementStatusCol !== -1) {
