@@ -5734,6 +5734,202 @@ function markTaskSubmittedForRow(sheet, rowIndex, submittedBy) {
   setCellByHeader(sheet, rowIndex, 'SubmittedBy', submittedBy || '');
 }
 
+function cancelTaskMonthlySubmission(taskId, cancelledBy) {
+  try {
+    ensureInputStatusColumns();
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_NAME);
+
+    if (!sheet) {
+      throw new Error("ไม่พบชีต " + SHEET_NAME);
+    }
+
+    const lastRow = sheet.getLastRow();
+    const lastCol = sheet.getLastColumn();
+
+    if (lastRow < 2) {
+      return JSON.stringify({
+        success: false,
+        message: "ไม่พบข้อมูลตัวชี้วัดในชีต"
+      });
+    }
+
+    const values = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    const headers = values[0].map(function(h) {
+      return String(h || "").trim();
+    });
+    const col = function(name) {
+      return headers.indexOf(name);
+    };
+
+    const idCol = col("ID");
+    const inputStatusCol = col("InputStatus");
+    const inputPeriodKeyCol = col("InputPeriodKey");
+    const inputPeriodLabelCol = col("InputPeriodLabel");
+    const submittedAtCol = col("SubmittedAt");
+    const submittedByCol = col("SubmittedBy");
+    const progressCol = col("Progress");
+    const progressOutcomeCol = col("ProgressOutcome");
+    const challengesCol = col("Challenges");
+    const nextStepsCol = col("NextSteps");
+    const resultValueCol = col("ResultValue");
+    const resultTextCol = col("ResultText");
+    const resultLevelTextCol = col("ResultLevelText");
+    const resultLevelRankCol = col("ResultLevelRank");
+    const targetLevelTextCol = col("TargetLevelText");
+    const targetLevelRankCol = col("TargetLevelRank");
+    const achievementStatusCol = col("AchievementStatus");
+    const achievementTextCol = col("AchievementText");
+
+    if (idCol === -1) {
+      throw new Error("ไม่พบคอลัมน์ ID");
+    }
+
+    const targetId = String(taskId || "").trim();
+
+    if (!targetId) {
+      return JSON.stringify({
+        success: false,
+        message: "ไม่พบรหัสตัวชี้วัดที่ต้องการถอนการส่ง"
+      });
+    }
+
+    const period = getCurrentInputPeriodInfo();
+    const activeKey = String(period && period.key || "").trim();
+    const activeLabel = String(period && period.label || "").trim();
+
+    for (let i = 1; i < values.length; i++) {
+      const row = values[i];
+      const rowId = String(row[idCol] || "").trim();
+
+      if (rowId !== targetId) continue;
+
+      const rowNumber = i + 1;
+      const inputStatus = inputStatusCol !== -1 ? String(row[inputStatusCol] || "").trim() : "";
+      const inputPeriodKey = inputPeriodKeyCol !== -1
+        ? normalizePeriodKeyServer_(row[inputPeriodKeyCol])
+        : "";
+      const inputPeriodLabel = inputPeriodLabelCol !== -1
+        ? String(row[inputPeriodLabelCol] || "").trim()
+        : "";
+
+      if (inputStatus !== "Submitted") {
+        return JSON.stringify({
+          success: true,
+          message: "รายการนี้อยู่สถานะยังไม่ส่งอยู่แล้ว"
+        });
+      }
+
+      if (
+        activeKey &&
+        inputPeriodKey &&
+        inputPeriodKey !== activeKey &&
+        inputPeriodLabel !== activeLabel
+      ) {
+        return JSON.stringify({
+          success: false,
+          message: "ถอนการส่งได้เฉพาะข้อมูลของรอบปัจจุบันเท่านั้น"
+        });
+      }
+
+      if (inputStatusCol !== -1) {
+        sheet.getRange(rowNumber, inputStatusCol + 1).setValue("NotSubmitted");
+      }
+
+      if (inputPeriodKeyCol !== -1) {
+        sheet.getRange(rowNumber, inputPeriodKeyCol + 1).setNumberFormat("@").setValue("");
+      }
+
+      if (inputPeriodLabelCol !== -1) {
+        sheet.getRange(rowNumber, inputPeriodLabelCol + 1).setValue("");
+      }
+
+      if (submittedAtCol !== -1) {
+        sheet.getRange(rowNumber, submittedAtCol + 1).setValue("");
+      }
+
+      if (submittedByCol !== -1) {
+        sheet.getRange(rowNumber, submittedByCol + 1).setValue("");
+      }
+
+      if (progressCol !== -1) {
+        sheet.getRange(rowNumber, progressCol + 1).setValue("");
+      }
+
+      if (progressOutcomeCol !== -1) {
+        sheet.getRange(rowNumber, progressOutcomeCol + 1).setValue("");
+      }
+
+      if (challengesCol !== -1) {
+        sheet.getRange(rowNumber, challengesCol + 1).setValue("");
+      }
+
+      if (nextStepsCol !== -1) {
+        sheet.getRange(rowNumber, nextStepsCol + 1).setValue("");
+      }
+
+      if (resultValueCol !== -1) {
+        sheet.getRange(rowNumber, resultValueCol + 1).setValue("");
+      }
+
+      if (resultTextCol !== -1) {
+        sheet.getRange(rowNumber, resultTextCol + 1).setValue("-");
+      }
+
+      if (resultLevelTextCol !== -1) {
+        sheet.getRange(rowNumber, resultLevelTextCol + 1).setValue("");
+      }
+
+      if (resultLevelRankCol !== -1) {
+        sheet.getRange(rowNumber, resultLevelRankCol + 1).setValue("");
+      }
+
+      if (targetLevelTextCol !== -1) {
+        sheet.getRange(rowNumber, targetLevelTextCol + 1).setValue("");
+      }
+
+      if (targetLevelRankCol !== -1) {
+        sheet.getRange(rowNumber, targetLevelRankCol + 1).setValue("");
+      }
+
+      if (achievementStatusCol !== -1) {
+        sheet.getRange(rowNumber, achievementStatusCol + 1).setValue("NoData");
+      }
+
+      if (achievementTextCol !== -1) {
+        sheet.getRange(rowNumber, achievementTextCol + 1).setValue("ไม่มีข้อมูล");
+      }
+
+      touchUpdatedAt(sheet, rowNumber);
+      SpreadsheetApp.flush();
+
+      return JSON.stringify({
+        success: true,
+        message: "ถอนการส่งข้อมูลแล้ว และลบผลลัพธ์ของรอบนี้เรียบร้อย",
+        debug: {
+          id: targetId,
+          rowNumber: rowNumber,
+          cancelledBy: cancelledBy || ""
+        }
+      });
+    }
+
+    return JSON.stringify({
+      success: false,
+      message: "ไม่พบ Task ID: " + targetId
+    });
+
+  } catch (err) {
+    console.error("cancelTaskMonthlySubmission ERROR:", err);
+
+    return JSON.stringify({
+      success: false,
+      message: "เกิดข้อผิดพลาดขณะถอนการส่งข้อมูล: " + err.message
+    });
+  }
+}
+
 
 function hasMonthlyInput(taskObject) {
   if (!taskObject) return false;
