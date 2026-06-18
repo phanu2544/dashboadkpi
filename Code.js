@@ -142,6 +142,25 @@ const HISTORY_HEADERS = [
 
 const TELEGRAM_BOT_TOKEN_PROPERTY_KEY = "BOT_TOKEN";
 const TELEGRAM_ALERT_CHAT_ID_PROPERTY_KEY = "ALERT_CHAT_ID";
+const SELF_REGISTRATION_ENABLED_PROPERTY_KEY = "SELF_REGISTRATION_ENABLED";
+
+function securityMaintenanceResponse_() {
+  return {
+    success: false,
+    ok: false,
+    code: "SECURITY_MAINTENANCE",
+    message: "This operation is temporarily unavailable while security controls are being upgraded.",
+    retryable: false,
+    release: "R1"
+  };
+}
+
+function isSelfRegistrationEnabled_() {
+  return String(
+    PropertiesService.getScriptProperties()
+      .getProperty(SELF_REGISTRATION_ENABLED_PROPERTY_KEY) || ""
+  ).trim().toLowerCase() === "true";
+}
 
 function getTelegramConfig_() {
   const props = PropertiesService.getScriptProperties();
@@ -154,7 +173,7 @@ function getTelegramConfig_() {
 function sendTelegramAlert_(message) {
   const config = getTelegramConfig_();
   if (!config.alertChatId) return;
-  sendMessage(config.alertChatId, message);
+  sendMessage_(config.alertChatId, message);
 }
 /* function doGet() {
   return HtmlService.createHtmlOutputFromFile('index');
@@ -245,12 +264,6 @@ function touchUpdatedAt(sheet, rowIndex) {
  * @returns {HtmlOutput} The HTML output for the web app.
  */
 function doGet(e) {
-  setupSheet();
-  setupHistorySheet();
-
-  // ✅ ตรวจสอบ/เพิ่มคอลัมน์สถานะการกรอกข้อมูลรายเดือน
-  ensureInputStatusColumns();
-
   const htmlTemplate = HtmlService.createTemplateFromFile('index.html');
   htmlTemplate.url = ScriptApp.getService().getUrl(); // ส่ง URL ของเว็บแอปไปยัง HTML
   return htmlTemplate
@@ -327,6 +340,8 @@ function getTasksByYear(year) {
  * @returns {string} A JSON string with the result.
  */
 function deleteTask(taskId) {
+  return securityMaintenanceResponse_();
+
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
     const data = sheet.getDataRange().getValues();
@@ -362,6 +377,8 @@ function deleteTask(taskId) {
  * @returns {string} CSV data
  */
 function exportTasksToCSV(startDate, endDate) {
+  return securityMaintenanceResponse_();
+
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
     if (!sheet) {
@@ -415,13 +432,14 @@ function exportTasksToCSV(startDate, endDate) {
  * @returns {string} Download URL
  */
 function createHTMLDownloadUrl(startDate, endDate) {
+  return securityMaintenanceResponse_();
+
   try {
     const tasks = getFilteredTasks(startDate, endDate); // You'd need to implement this
     const htmlContent = generateStyledHTML(tasks); // You'd need to implement this
 
     const fileName = `tasks_export_${startDate}_to_${endDate}.html`;
     const file = DriveApp.createFile(fileName, htmlContent, MimeType.HTML);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     return file.getDownloadUrl();
   } catch (error) {
     console.error('Error creating HTML download URL:', error);
@@ -463,15 +481,14 @@ function generateStyledHTML(tasks) {
   return html;
 }
 function createCSVDownloadUrl(startDate, endDate) {
+  return securityMaintenanceResponse_();
+
   try {
     const csvData = exportTasksToCSV(startDate, endDate);
     const fileName = `tasks_export_${startDate}_to_${endDate}.csv`;
 
     // Create a file in the root folder of the user's Drive
     const file = DriveApp.createFile(fileName, csvData, MimeType.CSV);
-
-    // Set the file to be viewable by anyone with the link (adjust permissions as needed)
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
     // Return the download URL
     return file.getDownloadUrl();
@@ -486,9 +503,11 @@ function createCSVDownloadUrl(startDate, endDate) {
  * @returns {string} A JSON string with the result.
  */
 function addTask(taskObject) {
+  return securityMaintenanceResponse_();
+
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(SHEET_NAME) || setupSheet();
+    const sheet = ss.getSheetByName(SHEET_NAME) || setupSheet_();
 
     const newId = Utilities.getUuid();
     const timestamp = new Date();
@@ -624,6 +643,8 @@ function addTask(taskObject) {
  * @returns {string} A JSON string with the result.
  */
 function updateTaskStatus(taskId, newStatus) {
+  return securityMaintenanceResponse_();
+
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
     const data = sheet.getDataRange().getValues();
@@ -658,6 +679,8 @@ function updateTaskStatus(taskId, newStatus) {
  * @returns {string} A JSON string with the result.
  */
 function updateTaskProgress(taskId, progress) {
+  return securityMaintenanceResponse_();
+
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
     const data = sheet.getDataRange().getValues();
@@ -698,6 +721,8 @@ function updateTaskProgress(taskId, progress) {
 
 // ✅ อัปเดต ProgressOutcome (custom mode)
 function updateTaskProgressOutcome(taskId, value) {
+  return securityMaintenanceResponse_();
+
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
     const data = sheet.getDataRange().getValues();
@@ -764,6 +789,8 @@ function valueOrBlank_(value) {
  * @returns {string} A JSON string with the result.
  */
 function updateTaskDetails(taskObject) {
+  return securityMaintenanceResponse_();
+
   try {
     const sheet = SpreadsheetApp
       .getActiveSpreadsheet()
@@ -1080,7 +1107,7 @@ function updateTaskDetails(taskObject) {
  * ตรวจสอบและตั้งค่า Google Sheet ให้พร้อมใช้งาน
  * สร้างชีตและ Header หากยังไม่มี
  */
-function setupSheet() {
+function setupSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_NAME);
 
@@ -1166,6 +1193,10 @@ function loginCheck(username, password) {
 
 // ✅ ฟังก์ชันสมัครสมาชิกใหม่
 function registerUser(name, username, password) {
+  if (!isSelfRegistrationEnabled_()) {
+    return securityMaintenanceResponse_();
+  }
+
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("login");
 
@@ -1191,6 +1222,8 @@ function registerUser(name, username, password) {
 
 // ของuser.Poup.html ดึงข้อมูล
 function getAllUsers(currentUsername) {
+  return securityMaintenanceResponse_();
+
   try {
 
     requireSuperAdmin_(currentUsername);
@@ -1228,6 +1261,8 @@ function getAllUsers(currentUsername) {
 
 // ปรับให้รับ currentUsername (ค่าที่มาจาก client)
 function updateUserRole(id, newRole, currentUsername) {
+  return securityMaintenanceResponse_();
+
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('login');
     const data = sheet.getDataRange().getValues();
@@ -1295,6 +1330,8 @@ function updateUserRole(id, newRole, currentUsername) {
 }
 
 function deleteUser(id, currentUsername) {
+  return securityMaintenanceResponse_();
+
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('login');
     const data = sheet.getDataRange().getValues();
@@ -1433,6 +1470,8 @@ function getTasksByMonth(year, month) {
 
 
 function updateTaskProgressAndStatus(data) {
+  return securityMaintenanceResponse_();
+
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(SHEET_NAME);
@@ -1667,7 +1706,7 @@ function updateTaskProgressAndStatus(data) {
 
 /* Helper: คำนวณรอบ 15 วัน */
 // 1. ฟังก์ชันเตรียม Sheet (แก้ให้เลิกสั่ง Clear ข้อมูล)
-function setupHistorySheet() {
+function setupHistorySheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName("TaskHistory");
 
@@ -1715,7 +1754,7 @@ function setupHistorySheet() {
 
 
 // 3. ฟังก์ชันสำหรับตั้งเวลา (Manual Trigger) - ให้ก๊อปไปวางต่อท้ายไฟล์
-function manualTriggerWithConfig() {
+function manualTriggerWithConfig_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   // *** สำคัญ: เช็คชื่อ Sheet ในไฟล์คุณว่าชื่อ "Settings" หรือชื่ออื่น ***
   const configSheet = ss.getSheetByName("Settings"); 
@@ -1784,7 +1823,7 @@ function getPreviousMonthPeriodInfo(date) {
 
                   const PERIOD_CONTROL_SHEET = "PeriodControl";
 
-            function setupPeriodControlSheet  () {
+            function setupPeriodControlSheet_() {
               const ss = SpreadsheetApp.getActiveSpreadsheet();
               let sheet = ss.getSheetByName(PERIOD_CONTROL_SHEET);
 
@@ -1939,7 +1978,7 @@ function getPreviousMonthPeriodInfo(date) {
 
             function updatePeriodControlValue_(key, value, description, updatedBy) {
               const ss = SpreadsheetApp.getActiveSpreadsheet();
-              const sheet = ss.getSheetByName(PERIOD_CONTROL_SHEET) || setupPeriodControlSheet();
+              const sheet = ss.getSheetByName(PERIOD_CONTROL_SHEET) || setupPeriodControlSheet_();
 
               const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PERIOD_CONTROL_SHEET);
               const map = getPeriodControlMap_();
@@ -1981,7 +2020,7 @@ function getPreviousMonthPeriodInfo(date) {
 
 
             function getActivePeriodInfo() {
-              setupPeriodControlSheet();
+              setupPeriodControlSheet_();
 
               const map = getPeriodControlMap_();
 
@@ -2114,8 +2153,8 @@ function getPreviousMonthPeriodInfo(date) {
             }
 
 
-            function testPeriodControl() {
-              setupPeriodControlSheet();
+            function testPeriodControl_() {
+              setupPeriodControlSheet_();
 
               const active = getActivePeriodInfo();
               const next = getNextMonthPeriodInfo_(active);
@@ -2636,7 +2675,7 @@ if (!mode) {
       }
 
 
-      function testDataQualityCriticalOnly() {
+      function testDataQualityCriticalOnly_() {
       const result = validateDataQualityBeforeClosePeriod_();
 
       Logger.log("success: " + result.success);
@@ -2683,7 +2722,7 @@ if (!mode) {
       }
 
       // ✅ ใช้สำหรับกด Run ทดสอบใน Apps Script ได้โดยตรง
-      function testDataQualityBeforeClosePeriod() {
+      function testDataQualityBeforeClosePeriod_() {
         const result = validateDataQualityBeforeClosePeriod_();
 
         Logger.log(JSON.stringify(result, null, 2));
@@ -2938,7 +2977,7 @@ if (!mode) {
           const hour = now.getHours();
           const minute = now.getMinutes();
 
-          const config = getSystemConfig();
+          const config = getSystemConfig_();
 
           // ⛔ ถ้าไม่ force และ auto ปิด → ออก
           if (!force && config.enabled === false) {
@@ -2966,7 +3005,7 @@ if (!mode) {
 
           const ss = SpreadsheetApp.getActiveSpreadsheet();
           const taskSheet = ss.getSheetByName(SHEET_NAME);
-          const historySheet = setupHistorySheet();
+          const historySheet = setupHistorySheet_();
 
           if (!taskSheet || !historySheet) {
             throw new Error("ไม่พบ TaskData หรือ TaskHistory");
@@ -3311,12 +3350,12 @@ if (!mode) {
 
 
           // 🔔 แจ้งเตือนข้อความสรุป
-          notifySnapshotFromSheet(period.label);
+          notifySnapshotFromSheet_(period.label);
 
           let fileUrl = null;
 
           try {
-            fileUrl = createSnapshotFileInDrive(period.label);
+            fileUrl = createSnapshotFileInDrive_(period.label);
           } catch (err) {
             console.error("Create Snapshot File Error:", err);
           }
@@ -3501,6 +3540,10 @@ function getAllTaskHistory() {
 
 
 function getSystemConfig() {
+  return securityMaintenanceResponse_();
+}
+
+function getSystemConfig_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheetByName("SystemConfig");
   if (!sh) return {};
@@ -3519,6 +3562,8 @@ function getSystemConfig() {
 }
 
 function saveSnapshotConfig(data, currentUsername) {
+  return securityMaintenanceResponse_();
+
   try {
     requireSuperAdmin_(currentUsername);
 
@@ -3547,6 +3592,8 @@ function saveSnapshotConfig(data, currentUsername) {
 
 
 function snapshotNow(currentUsername) {
+  return securityMaintenanceResponse_();
+
   try {
     requireSuperAdmin_(currentUsername);
 
@@ -3626,6 +3673,8 @@ function ensureTaskHistoryReportingHeaders_() {
   };
 }
           function closeMonthlyPeriod(currentUsername) {
+            return securityMaintenanceResponse_();
+
             const lock = LockService.getScriptLock();
             let locked = false;
             let period = null;
@@ -3955,7 +4004,9 @@ function ensureTaskHistoryReportingHeaders_() {
           }
 
 function getSnapshotConfig() {
-  const cfg = getSystemConfig();
+  return securityMaintenanceResponse_();
+
+  const cfg = getSystemConfig_();
 
   const props = PropertiesService.getScriptProperties();
 
@@ -4229,7 +4280,7 @@ function buildMonthlyCloseExceptionQueue_(rows, period) {
 
 function getRecentPeriodActionLogsForUI_(limit) {
   const maxRows = Math.max(1, Math.min(Number(limit || 15), 50));
-  const sheet = setupPeriodActionLogSheet();
+  const sheet = setupPeriodActionLogSheet_();
 
   if (!sheet || sheet.getLastRow() < 2) {
     return [];
@@ -4529,6 +4580,8 @@ function buildMonthlyCloseDryRunFailureResponse_(debug, message, source, rawErro
 }
 
 function getMonthlyCloseManagementConsoleData(currentUsername) {
+  return securityMaintenanceResponse_();
+
   const debug = buildMonthlyCloseDryRunDebugBase_();
   debug.functionName = "getMonthlyCloseManagementConsoleData";
 
@@ -4645,6 +4698,8 @@ function getMonthlyCloseManagementConsoleData(currentUsername) {
 }
 
 function runDryRunSnapshotForMonthlyCloseConsole(currentUsername) {
+  return securityMaintenanceResponse_();
+
   const debug = buildMonthlyCloseDryRunDebugBase_();
   debug.functionName = "runDryRunSnapshotForMonthlyCloseConsole";
 
@@ -4732,7 +4787,7 @@ function runDryRunSnapshotForMonthlyCloseConsole(currentUsername) {
   }
 }
 
-function testRunDryRunSnapshotForMonthlyCloseConsole() {
+function testRunDryRunSnapshotForMonthlyCloseConsole_() {
   const username = getMonthlyCloseConsoleTestUsername_();
   const result = runDryRunSnapshotForMonthlyCloseConsole(username);
   Logger.log(JSON.stringify(result, null, 2));
@@ -4792,6 +4847,8 @@ function getMonthlyCloseConsoleTestUsername_() {
 }
 
 function runClosePeriodFromMonthlyCloseConsole(currentUsername) {
+  return securityMaintenanceResponse_();
+
   requireSuperAdmin_(currentUsername);
 
   const beforeLogs = getRecentPeriodActionLogsForUI_(1);
@@ -4835,7 +4892,7 @@ function doPost(e) {
   /* sendMessage(chatId, "📌 chatId ของที่นี่คือ: " + chatId); */
 }
 
-function sendMessage(chatId, text) {
+function sendMessage_(chatId, text) {
   if (!text) return;
 
   const config = getTelegramConfig_();
@@ -4857,11 +4914,11 @@ function sendMessage(chatId, text) {
   });
 }
   /* ฟังก์ชันส่งข้อความแบบแบ่งอัตโนมัติ */
-function sendLongMessage(chatId, text) {
+function sendLongMessage_(chatId, text) {
   const MAX_LENGTH = 4000; // กันชนก่อนถึง 4096
 
   if (text.length <= MAX_LENGTH) {
-    sendMessage(chatId, text);
+    sendMessage_(chatId, text);
     return;
   }
 
@@ -4869,7 +4926,7 @@ function sendLongMessage(chatId, text) {
 
   while (start < text.length) {
     const chunk = text.substring(start, start + MAX_LENGTH);
-    sendMessage(chatId, chunk);
+    sendMessage_(chatId, chunk);
     start += MAX_LENGTH;
   }
 }
@@ -4879,12 +4936,12 @@ function sendLongMessage(chatId, text) {
     // --- ส่วนการตั้งค่า (ตรวจสอบว่ามีอยู่ด้านบนสุดของไฟล์แล้วหรือยัง) ---
 
 
-function notifyGroup(message) {
+function notifyGroup_(message) {
   sendTelegramAlert_(message);
 }
 
-function testNotify() {
-  notifyGroup("🔔 ทดสอบแจ้งเตือนสำเร็จ");
+function testNotify_() {
+  notifyGroup_("🔔 ทดสอบแจ้งเตือนสำเร็จ");
 }
 
 function getStatusEmoji(status) {
@@ -4915,7 +4972,7 @@ function getStatusEmoji(status) {
 }
 
 
-function notifySnapshotFromSheet(periodLabel) {
+function notifySnapshotFromSheet_(periodLabel) {
 
   const rows = getHistorySummaryForPeriod(periodLabel);
 
@@ -4951,7 +5008,7 @@ function notifySnapshotFromSheet(periodLabel) {
 
 
 
-function createSnapshotFileInDrive(periodLabel) {
+function createSnapshotFileInDrive_(periodLabel) {
 
   try {
 
@@ -5007,11 +5064,6 @@ function createSnapshotFileInDrive(periodLabel) {
     file.moveTo(folder);
 
     // ตั้งค่าแชร์
-    file.setSharing(
-      DriveApp.Access.ANYONE_WITH_LINK,
-      DriveApp.Permission.VIEW
-    );
-
     return newFile.getUrl();
 
   } catch (err) {
@@ -5086,6 +5138,8 @@ function getTaskHistoryByTaskId(taskId) {
 
 
 function resetMonthlyTaskProgress(currentUsername) {
+  return securityMaintenanceResponse_();
+
   try {
     requireSuperAdmin_(currentUsername);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -5547,10 +5601,10 @@ function formatTargetText(operator, value, mode, unit) {
 }
 
 
-function recalculateAllAchievements() {
+function recalculateAllAchievements_() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = setupSheet();
+    const sheet = setupSheet_();
 
     const lastRow = sheet.getLastRow();
     const lastCol = sheet.getLastColumn();
@@ -5649,7 +5703,7 @@ function updateAchievementForRow(sheet, rowIndex) {
   }
 }
 
-function ensureInputStatusColumns() {
+function ensureInputStatusColumns_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAME);
 
@@ -5757,8 +5811,10 @@ function markTaskSubmittedForRow(sheet, rowIndex, submittedBy) {
 }
 
 function cancelTaskMonthlySubmission(taskId, cancelledBy) {
+  return securityMaintenanceResponse_();
+
   try {
-    ensureInputStatusColumns();
+    ensureInputStatusColumns_();
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(SHEET_NAME);
@@ -6011,7 +6067,7 @@ function hasMonthlyInput(taskObject) {
 
 
 
-        function setupSubDepConfigSheet() {
+        function setupSubDepConfigSheet_() {
           const ss = SpreadsheetApp.getActiveSpreadsheet();
           let sheet = ss.getSheetByName("SubDepConfig");
 
@@ -6207,14 +6263,14 @@ function hasMonthlyInput(taskObject) {
             return found.label || raw;
           }
 
-          function testGetSubDepConfig() {
+          function testGetSubDepConfig_() {
               Logger.log(getSubDepConfig());
               Logger.log(getSubDepLabelFromConfig_("IR:A", true));
               Logger.log(getSubDepLabelFromConfig_("HA:COM", true));
             }
 
-            function repairActivePeriodKey() {
-              setupPeriodControlSheet();
+            function repairActivePeriodKey_() {
+              setupPeriodControlSheet_();
 
               const active = getActivePeriodInfo();
 
@@ -6235,7 +6291,7 @@ function hasMonthlyInput(taskObject) {
               return "✅ ซ่อม ActivePeriodKey เป็น " + key;
             }
 
-            function testNextPeriodFromActive() {
+            function testNextPeriodFromActive_() {
               const active = getActivePeriodInfo();
               const next = getNextMonthPeriodInfo_(active);
 
@@ -6303,6 +6359,8 @@ function hasMonthlyInput(taskObject) {
           * ไม่แก้ TaskData
           */
           function resetPeriodControlToCurrentMonth(currentUsername) {
+            return securityMaintenanceResponse_();
+
             try {
               const beforePeriod = getActivePeriodInfo();
 
@@ -6396,7 +6454,7 @@ function hasMonthlyInput(taskObject) {
             "MetaJson"
           ];
 
-          function setupPeriodActionLogSheet() {
+          function setupPeriodActionLogSheet_() {
             const ss = SpreadsheetApp.getActiveSpreadsheet();
             let sheet = ss.getSheetByName(PERIOD_ACTION_LOG_SHEET);
 
@@ -6441,7 +6499,7 @@ function hasMonthlyInput(taskObject) {
           }
 
           function appendPeriodActionLog_(data) {
-            const sheet = setupPeriodActionLogSheet();
+            const sheet = setupPeriodActionLogSheet_();
 
             const headers = sheet
               .getRange(1, 1, 1, sheet.getLastColumn())
@@ -6585,6 +6643,8 @@ function hasMonthlyInput(taskObject) {
            * ไม่แก้ TaskData
            */
           function openPreviousMonthInputPeriod(currentUsername) {
+            return securityMaintenanceResponse_();
+
             try {
               requireSuperAdmin_(currentUsername);
 
@@ -6693,7 +6753,7 @@ function hasMonthlyInput(taskObject) {
           }
 
 
-          function repairPeriodKeysToTextOnce() {
+          function repairPeriodKeysToTextOnce_() {
             const ss = SpreadsheetApp.getActiveSpreadsheet();
 
             // ✅ ซ่อม PeriodControl
@@ -7738,6 +7798,8 @@ function monthlyReportGetRowsForExport_(periodKeyOrLabel, filters) {
 
 
       function exportMonthlyClosedReportCsv(periodKeyOrLabel, exportMode, filters) {
+        return securityMaintenanceResponse_();
+
         // ✅ รองรับทั้งรูปแบบเก่า exportMonthlyClosedReportCsv(periodKey, filters)
         // และรูปแบบใหม่ exportMonthlyClosedReportCsv(periodKey, exportMode, filters)
         if (typeof exportMode === "object" && filters === undefined) {
@@ -8265,13 +8327,15 @@ function monthlyReportRowValue_(row, fieldName) {
 }
 
 function exportMonthlyClosedRawDataCsv(periodKeyOrLabel, filters) {
+  return securityMaintenanceResponse_();
+
   return exportMonthlyClosedReportCsv(periodKeyOrLabel, "raw", filters);
 }
 
 
 
 
-function testStep13MonthlyClosedReportExportCsv() {
+function testStep13MonthlyClosedReportExportCsv_() {
   const result = exportMonthlyClosedReportCsv("", {});
 
   const csv = result.csvContent || result.content || "";
@@ -8307,6 +8371,8 @@ function testStep13MonthlyClosedReportExportCsv() {
 
 
         function getClosePeriodDataQualityPreview() {
+          return securityMaintenanceResponse_();
+
           const dq = validateDataQualityBeforeClosePeriod_();
 
           return {
@@ -8348,14 +8414,14 @@ function testStep13MonthlyClosedReportExportCsv() {
         }
 
 
-        function testStep14DataQualityPreviewForUi() {
+        function testStep14DataQualityPreviewForUi_() {
           const result = getClosePeriodDataQualityPreview();
 
           Logger.log(JSON.stringify(result, null, 2));
 
           return result;
         }
-function testMonthlyClosedReportFilterOptions() {
+function testMonthlyClosedReportFilterOptions_() {
   const result = getMonthlyClosedReportFilterOptions("2026-06", {
     department: "",
     workGroup: "",
@@ -8683,7 +8749,7 @@ function testMonthlyClosedReportFilterOptions() {
 }
 
 
-    function testStep125WriteSnapshotThenRollback() {
+    function testStep125WriteSnapshotThenRollback_() {
       const lock = LockService.getScriptLock();
       let locked = false;
 
@@ -8700,7 +8766,7 @@ function testMonthlyClosedReportFilterOptions() {
 
         const ss = SpreadsheetApp.getActiveSpreadsheet();
         const taskSheet = ss.getSheetByName(SHEET_NAME);
-        const historySheet = setupHistorySheet();
+        const historySheet = setupHistorySheet_();
 
         if (!taskSheet || !historySheet) {
           throw new Error("ไม่พบ TaskData หรือ TaskHistory");
@@ -9076,6 +9142,8 @@ function formatResultTextByMode_(evaluateMode, resultValue, outcomeUnit, baselin
 
 
 function getDataQualityBeforeClosePeriodForUI(currentUsername) {
+  return securityMaintenanceResponse_();
+
   try {
     requireSuperAdmin_(currentUsername);
 
@@ -9161,6 +9229,8 @@ function getDataQualityBeforeClosePeriodForUI(currentUsername) {
 }
 
           function previewSnapshotQualityBeforeClosePeriod() {
+            return securityMaintenanceResponse_();
+
             const rows = getTaskDataRowsForDQ_();
             const period = getActivePeriodInfo();
             const dq = validateDataQualityBeforeClosePeriod_();
@@ -9211,13 +9281,13 @@ function getDataQualityBeforeClosePeriodForUI(currentUsername) {
             return summary;
           }
 
-          function testStep12PreviewSnapshotQuality() {
+          function testStep12PreviewSnapshotQuality_() {
             const result = previewSnapshotQualityBeforeClosePeriod();
             Logger.log(JSON.stringify(result, null, 2));
             return result;
           }
 
-          function testStep12DataQualityBeforeClose() {
+          function testStep12DataQualityBeforeClose_() {
             const result = validateDataQualityBeforeClosePeriod_();
             Logger.log(JSON.stringify(result, null, 2));
             return result;
@@ -9278,7 +9348,7 @@ function buildDQIssueSummaryForUI_(issues) {
 }
 
 
-function testSnapshotReportingStatusLogic() {
+function testSnapshotReportingStatusLogic_() {
   const period = getActivePeriodInfo();
   const rows = getTaskDataRowsForDQ_();
 
@@ -9307,7 +9377,7 @@ function testSnapshotReportingStatusLogic() {
 
 
 
-function testSnapshotReportingStatusSummary() {
+function testSnapshotReportingStatusSummary_() {
   const period = getActivePeriodInfo();
   const rows = getTaskDataRowsForDQ_();
 
@@ -9379,10 +9449,10 @@ function testSnapshotReportingStatusSummary() {
   return summary;
 }
 
-function testSnapshotReportingFieldsDryRun() {
+function testSnapshotReportingFieldsDryRun_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const taskSheet = ss.getSheetByName(SHEET_NAME);
-  const historySheet = setupHistorySheet();
+  const historySheet = setupHistorySheet_();
 
   if (!taskSheet || !historySheet) {
     throw new Error("ไม่พบ TaskData หรือ TaskHistory");
@@ -9515,11 +9585,11 @@ function getPeriodKeyFromAnyDateForSnapshotCheck_(value) {
 }
 
 
-function testSnapshotDuplicateBeforeRealRun() {
+function testSnapshotDuplicateBeforeRealRun_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
   const taskSheet = ss.getSheetByName(SHEET_NAME);
-  const historySheet = setupHistorySheet();
+  const historySheet = setupHistorySheet_();
   const period = getActivePeriodInfo();
 
   if (!taskSheet) {
@@ -9713,9 +9783,9 @@ function testSnapshotDuplicateBeforeRealRun() {
   return summary;
 }
 
-function findQaPartialSnapshotRowsForActivePeriod() {
+function findQaPartialSnapshotRowsForActivePeriod_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const historySheet = setupHistorySheet();
+  const historySheet = setupHistorySheet_();
   const period = getActivePeriodInfo();
 
   const lastRow = historySheet.getLastRow();
@@ -9808,11 +9878,11 @@ function findQaPartialSnapshotRowsForActivePeriod() {
 }
 
 
-function deleteQaPartialSnapshotRowsForActivePeriod() {
+function deleteQaPartialSnapshotRowsForActivePeriod_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const historySheet = setupHistorySheet();
+  const historySheet = setupHistorySheet_();
 
-  const preview = findQaPartialSnapshotRowsForActivePeriod();
+  const preview = findQaPartialSnapshotRowsForActivePeriod_();
   const rows = Array.isArray(preview.rows) ? preview.rows : [];
 
   if (!rows.length) {
@@ -9848,7 +9918,7 @@ function deleteQaPartialSnapshotRowsForActivePeriod() {
   return result;
 }
 
-function testRunSnapshotOnlyForActivePeriod() {
+function testRunSnapshotOnlyForActivePeriod_() {
   const result = snapshotTasks15Days_(true, "SYSTEM_I4_TEST");
 
   Logger.log(JSON.stringify(result, null, 2));
@@ -9856,9 +9926,9 @@ function testRunSnapshotOnlyForActivePeriod() {
   return result;
 }
 
-function findTestSnapshotRowsForActivePeriod() {
+function findTestSnapshotRowsForActivePeriod_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const historySheet = setupHistorySheet();
+  const historySheet = setupHistorySheet_();
   const period = getActivePeriodInfo();
 
   const lastRow = historySheet.getLastRow();
@@ -9956,11 +10026,11 @@ function findTestSnapshotRowsForActivePeriod() {
 }
 
 
-function deleteTestSnapshotRowsForActivePeriod() {
+function deleteTestSnapshotRowsForActivePeriod_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const historySheet = setupHistorySheet();
+  const historySheet = setupHistorySheet_();
 
-  const preview = findTestSnapshotRowsForActivePeriod();
+  const preview = findTestSnapshotRowsForActivePeriod_();
 
   // อ่านใหม่แบบเต็ม เพราะ preview.rows ถูก slice แค่ 20 รายการ
   const period = getActivePeriodInfo();
@@ -10043,7 +10113,7 @@ function deleteTestSnapshotRowsForActivePeriod() {
   return result;
 }
 
-function testCloseMonthlyPeriodFlowI6() {
+function testCloseMonthlyPeriodFlowI6_() {
   const beforePeriod = getActivePeriodInfo();
 
   const result = closeMonthlyPeriod("phanu2544");
@@ -10060,7 +10130,7 @@ function testCloseMonthlyPeriodFlowI6() {
   return summary;
 }
 
-function repairLevelTargetFieldsForDQ() {
+function repairLevelTargetFieldsForDQ_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAME);
 
@@ -10200,10 +10270,10 @@ function repairLevelTargetFieldsForDQ() {
   return result;
 }
 
-function verifyClosedPeriodSnapshotCompleteness_202611() {
+function verifyClosedPeriodSnapshotCompleteness_202611_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const taskSheet = ss.getSheetByName(SHEET_NAME);
-  const historySheet = setupHistorySheet();
+  const historySheet = setupHistorySheet_();
 
   const periodKey = "2026-11";
   const periodLabel = "พ.ย. 2569";
@@ -10309,9 +10379,9 @@ function verifyClosedPeriodSnapshotCompleteness_202611() {
 }
 
 
-function previewBlankReportingFieldsInHistory202611() {
+function previewBlankReportingFieldsInHistory202611_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const historySheet = setupHistorySheet();
+  const historySheet = setupHistorySheet_();
 
   const periodKey = "2026-11";
   const periodLabel = "พ.ย. 2569";
@@ -10389,10 +10459,10 @@ function previewBlankReportingFieldsInHistory202611() {
 }
 
 
-function repairBlankReportingFieldsInHistory202611() {
+function repairBlankReportingFieldsInHistory202611_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const taskSheet = ss.getSheetByName(SHEET_NAME);
-  const historySheet = setupHistorySheet();
+  const historySheet = setupHistorySheet_();
 
   const period = {
     key: "2026-11",
@@ -10613,7 +10683,7 @@ function repairBlankReportingFieldsInHistory202611() {
 function validateSnapshotStateBeforeClosePeriod_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const taskSheet = ss.getSheetByName(SHEET_NAME);
-  const historySheet = setupHistorySheet();
+  const historySheet = setupHistorySheet_();
   const period = getActivePeriodInfo();
 
   if (!taskSheet) {
@@ -10779,7 +10849,7 @@ function validateSnapshotStateBeforeClosePeriod_() {
 
 
 
-function testPreflightGuardI7() {
+function testPreflightGuardI7_() {
   const result = validateSnapshotStateBeforeClosePeriod_();
 
   Logger.log(JSON.stringify(result, null, 2));
@@ -10824,8 +10894,16 @@ function normalizeReportingMonthsInput_(months, frequency) {
     .join(",");
 }
 
-function testStep125LogResult() {
-  const result = testStep125WriteSnapshotThenRollback();
+function getBulkReportingScheduleSetupData(currentUsername) {
+  return securityMaintenanceResponse_();
+}
+
+function updateBulkReportingSchedules(payload, currentUsername) {
+  return securityMaintenanceResponse_();
+}
+
+function testStep125LogResult_() {
+  const result = testStep125WriteSnapshotThenRollback_();
 
   Logger.log(JSON.stringify(result, null, 2));
 
@@ -10833,7 +10911,7 @@ function testStep125LogResult() {
 }
 
 
-function testStep13MonthlyClosedReportCore() {
+function testStep13MonthlyClosedReportCore_() {
   const report = monthlyReportBuild_("", {});
 
   const result = {
@@ -10888,7 +10966,7 @@ function testStep13MonthlyClosedReportCore() {
 
 
 
-      function step15_PostCloseE2ETest() {
+      function step15_PostCloseE2ETest_() {
         const ss = SpreadsheetApp.getActiveSpreadsheet();
 
         const taskSheet = ss.getSheetByName("TaskData");
@@ -11097,7 +11175,7 @@ function testStep13MonthlyClosedReportCore() {
       }
 
 
-      function step17_ExportQA_LatestClosedPeriod() {
+      function step17_ExportQA_LatestClosedPeriod_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const historySheet = ss.getSheetByName("TaskHistory");
   const periodSheet = ss.getSheetByName("PeriodControl");
@@ -11272,7 +11350,7 @@ function testStep13MonthlyClosedReportCore() {
   return result;
 }
 
-function migrateTaskDataMasterToDevSchema() {
+function migrateTaskDataMasterToDevSchema_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("TaskData");
 
@@ -11438,7 +11516,7 @@ function migrateTaskDataMasterToDevSchema() {
     "📦 Backup: " + backupName
   );
 }
-            function clearMonthlyInputForActivePeriod() {
+            function clearMonthlyInputForActivePeriod_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("TaskData");
 
