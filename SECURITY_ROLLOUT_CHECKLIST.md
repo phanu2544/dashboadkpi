@@ -500,6 +500,20 @@ Rollback target: Protected release ล่าสุดที่ผ่านกา
 - Deployment: ไม่ได้ดำเนินการ
 - `clasp push`: ไม่ได้ดำเนินการ
 
+### 2026-06-18 — Commit R1 / Phase 1A Containment
+
+- Current active release: R1 / Phase 1A — Containment
+- Commit: `15671078ca9a7048a44458ee05254cd89f275469`
+- Commit message: `security: contain unsafe public rpc surface`
+- ไฟล์ที่เปลี่ยนใน commit: `Code.js`
+- Manual test gate: รอดำเนินการ
+- Push: ไม่ได้ดำเนินการ
+- `clasp push`: ไม่ได้ดำเนินการ
+- Deployment: ไม่ได้ดำเนินการ
+- Working tree อื่นที่ไม่เกี่ยวข้องยังคงอยู่:
+  - `index.html` modified
+  - `data/` untracked
+
 คัดลอก block นี้สำหรับแต่ละรอบงาน:
 
 ```markdown
@@ -529,9 +543,9 @@ Rollback target: Protected release ล่าสุดที่ผ่านกา
 | หัวข้อ | ผู้ตรวจที่ต้องการ | สถานะ | ตรวจล่าสุด | หลักฐาน/หมายเหตุ |
 |---|---|---|---|---|
 | Phase 0 finding | เจ้าของโครงการ | ยอมรับแล้ว — Critical | 2026-06-18 | ยืนยัน Execute as Me + Anyone |
-| ขอบเขต R1 | เจ้าของโครงการ | วางแผนแล้ว | — | รอ containment patch |
-| R1 code review | TBD | ยังไม่เริ่ม | — | — |
-| R1 manual test gate | TBD | ยังไม่เริ่ม | — | — |
+| ขอบเขต R1 | เจ้าของโครงการ | อนุมัติแล้ว | 2026-06-18 | R1 containment commit แล้ว |
+| R1 code review | เจ้าของโครงการ | ผ่านและ commit แล้ว | 2026-06-18 | `15671078ca9a7048a44458ee05254cd89f275469` — `security: contain unsafe public rpc surface`; เปลี่ยนเฉพาะ `Code.js` |
+| R1 manual test gate | TBD | รอดำเนินการ | — | ยังไม่อนุมัติ deploy จนกว่า manual test gate จะผ่าน |
 | อนุมัติ deploy R1 | เจ้าของโครงการ | ยังไม่ได้ขอ | — | ยังไม่ได้รับอนุญาตให้ deploy |
 | R2 session design | TBD | ยังไม่เริ่ม | — | ติด session storage decision |
 | R3 permission model | TBD | ยังไม่เริ่ม | — | ติด ownership/export decisions |
