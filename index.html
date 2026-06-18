@@ -6746,12 +6746,12 @@ body {
                   <section class="close-console__panel">
                     <div class="close-console__panel-head">
                       <div>
-                        <div class="close-console__panel-kicker">รายการที่ต้องแก้ไข</div>
-                        <h3 class="close-console__panel-title">รายการที่ต้องตรวจสอบก่อนปิดรอบ</h3>
+                        <div class="close-console__panel-kicker">รายการแนะนำ</div>
+                        <h3 class="close-console__panel-title">รายการแนะนำให้ตรวจสอบก่อนปิดรอบ</h3>
                       </div>
                     </div>
 
-                    <div class="close-console__queue-filter" aria-label="ตัวกรองรายการก่อนปิดรอบ">
+                    <div class="close-console__queue-filter" aria-label="ตัวกรองรายการแนะนำก่อนปิดรอบ">
                       <label class="close-console__filter-field" for="monthlyCloseQueueSearch">
                         <span>ค้นหา</span>
                         <input
@@ -6765,10 +6765,10 @@ body {
                         <span>กลุ่มรายการ</span>
                         <select id="monthlyCloseQueueGroupFilter" onchange="renderMonthlyCloseExceptionQueue(monthlyCloseConsoleState.data)">
                           <option value="all">ทั้งหมด</option>
-                          <option value="warnings">ควรตรวจสอบก่อนปิดรอบ</option>
+                          <option value="warnings">รายการแนะนำให้ตรวจสอบ</option>
                           <option value="notSubmitted">ยังไม่ส่งข้อมูล</option>
-                          <option value="notEvaluable">ส่งแล้วแต่ประเมินไม่ได้</option>
-                          <option value="configIncomplete">ตั้งค่า KPI ไม่ครบ</option>
+                          <option value="notEvaluable">ส่งแล้วแต่ยังประเมินไม่ได้</option>
+                          <option value="configIncomplete">ตั้งค่าข้อมูล KPI ไม่ครบ</option>
                           <option value="notDue">ยังไม่ถึงรอบรายงาน</option>
                         </select>
                       </label>
@@ -6789,7 +6789,7 @@ body {
                     </div>
 
                     <div id="monthlyCloseExceptionQueue" class="close-console__queue">
-                      <div class="close-console__empty">กำลังวิเคราะห์รายการที่ต้องติดตาม...</div>
+                      <div class="close-console__empty">กำลังวิเคราะห์รายการแนะนำให้ตรวจสอบ...</div>
                     </div>
                   </section>
 
@@ -6842,7 +6842,7 @@ body {
                     <div class="close-export-manual__panel-title">ขั้นตอนใช้งาน</div>
                     <ul class="close-export-manual__list">
                       <li><strong>1. โหลดสถานะล่าสุด</strong> เพื่อให้ระบบดึงข้อมูลรอบปัจจุบันก่อน</li>
-                      <li><strong>2. ตรวจความพร้อมก่อนปิดรอบ</strong> เพื่ออัปเดตรายการที่ต้องตรวจสอบ</li>
+                      <li><strong>2. ตรวจความพร้อมก่อนปิดรอบ</strong> เพื่ออัปเดตรายการห้ามปิดรอบและรายการแนะนำให้ตรวจสอบ</li>
                       <li><strong>3. ดาวน์โหลด CSV</strong> แล้วเปิดใน Excel หรือ Google Sheets</li>
                       <li><strong>4. จัดการรายการสำคัญก่อน</strong> โดยเริ่มจากแถวที่มีระดับ “สำคัญมาก”</li>
                     </ul>
@@ -9191,13 +9191,13 @@ body {
       }
 
       if (!monthlyCloseConsoleState.hasExecutedDryRun) {
-        return "ยังปิดรอบไม่ได้ เพราะต้องตรวจความพร้อมก่อนในรอบปัจจุบัน";
+        return "กรุณากดตรวจความพร้อมก่อนปิดรอบในรอบปัจจุบัน";
       }
 
       if (monthlyCloseConsoleState.lastDryRunBackendOk !== true) {
         return "ยังปิดรอบไม่ได้ เพราะการตรวจความพร้อมล่าสุดไม่สำเร็จ (" +
           (monthlyCloseConsoleState.lastDryRunSource || "unknown") +
-          "): " + (monthlyCloseConsoleState.lastDryRunErrorText || "กรุณาตรวจหน้าต่างแจ้งเตือนและรายการที่ต้องแก้ไข");
+          "): " + (monthlyCloseConsoleState.lastDryRunErrorText || "กรุณาตรวจหน้าต่างแจ้งเตือนและรายการแนะนำให้ตรวจสอบ");
       }
 
       const summary = normalizeMonthlyCloseResponseSummary(monthlyCloseConsoleState.lastDryRunSummary || monthlyCloseConsoleState.data?.summary || {});
@@ -9215,7 +9215,7 @@ body {
       }
 
       if (warningCount > 0) {
-        return "ตรวจพบรายการที่ควรตรวจสอบ " + warningCount + " รายการ แต่ไม่มีปัญหาที่ห้ามปิดรอบ superadmin สามารถยืนยันปิดรอบได้";
+        return "ปิดรอบได้ แต่มีรายการแนะนำให้ตรวจสอบ " + warningCount + " รายการ superadmin สามารถยืนยันปิดรอบได้";
       }
 
       const blockerSummary = data?.blockerSummary || {};
@@ -9225,7 +9225,7 @@ body {
 
       if (data?.quality?.canClose !== true) {
         if (topCategories.length) {
-          return "ยังปิดรอบไม่ได้ เพราะยังมีข้อมูลที่ต้องแก้ไข: " +
+          return "ยังปิดรอบไม่ได้ เพราะยังมีข้อมูลที่ห้ามปิดรอบ: " +
             topCategories
               .slice(0, 3)
               .map(function(item) {
@@ -9292,7 +9292,7 @@ body {
           (safeDebugFunction ? '<div class="mt-1"><strong>Function:</strong> ' + escapeHTML(safeDebugFunction) + '</div>' : '') +
           (safeDebugStep ? '<div class="mt-1"><strong>Step:</strong> ' + escapeHTML(safeDebugStep) + '</div>' : '') +
           (stackPreview ? '<div class="mt-1"><strong>Debug:</strong> ' + escapeHTML(stackPreview) + '</div>' : '') +
-          '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ตรวจรายการที่ต้องแก้ไขด้านล่าง แล้วลองใหม่อีกครั้ง</div>' +
+          '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ตรวจรายการที่ห้ามปิดรอบด้านล่าง แล้วลองใหม่อีกครั้ง</div>' +
           buildMonthlyCloseBlockerListHtml(blockerSummary) +
         '</div>';
     }
@@ -9311,7 +9311,7 @@ body {
           buildMonthlyCloseIssuePreviewHtml(criticalIssues, "ยังไม่พบรายละเอียดปัญหาที่ห้ามปิดรอบ") +
           '<div class="mt-3"><strong>ตัวอย่างรายการที่ควรตรวจสอบ:</strong></div>' +
           buildMonthlyCloseIssuePreviewHtml(warnings, "ยังไม่พบรายละเอียดรายการที่ควรตรวจสอบ") +
-          '<div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">ดูรายการที่ต้องแก้ไขด้านล่างก่อนปิดรอบ</div>' +
+          '<div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">ดูรายการห้ามปิดรอบและรายการแนะนำด้านล่างก่อนตัดสินใจ</div>' +
         '</div>';
     }
 
@@ -9340,9 +9340,9 @@ function updateMonthlyCloseConsoleRoleState() {
         if (role === "admin") {
           hint.textContent = "บัญชี admin ดูข้อมูลและตรวจความพร้อมได้ แต่การปิดรอบจริงทำได้เฉพาะ superadmin";
         } else if (quality && quality.canClose === true) {
-          hint.textContent = "สถานะปัจจุบันพร้อมปิดรอบ หากตรวจความพร้อมล่าสุดแล้วถูกต้อง สามารถกดปิดรอบจริงได้";
+          hint.textContent = "ปิดรอบได้ หากตรวจความพร้อมล่าสุดแล้วไม่มีรายการห้ามปิดรอบ รายการแนะนำให้ตรวจสอบไม่บล็อกการปิดรอบ";
         } else {
-          hint.textContent = "ตรวจความพร้อมและรายการที่ต้องแก้ไขก่อนปิดรอบ ระบบจะปิดปุ่มไว้เฉพาะเมื่อยังมีปัญหาที่ห้ามปิดรอบ";
+          hint.textContent = "ตรวจความพร้อมและรายการแนะนำก่อนปิดรอบ ระบบจะปิดปุ่มไว้เฉพาะเมื่อยังมีรายการห้ามปิดรอบ";
         }
       }
 
@@ -9440,6 +9440,8 @@ function updateMonthlyCloseConsoleRoleState() {
       const topFields = Array.isArray(quality.issueSummary?.topFields)
         ? quality.issueSummary.topFields.slice(0, 4)
         : [];
+      const criticalCount = Number(quality.criticalCount || 0);
+      const warningCount = Number(quality.warningCount || 0);
 
       const cards = [
         ["ถึงรอบรายงาน", readiness.due, "ควรส่งข้อมูลในรอบนี้"],
@@ -9447,10 +9449,10 @@ function updateMonthlyCloseConsoleRoleState() {
         ["ส่งข้อมูลแล้ว", readiness.submitted, "พร้อมบันทึกเข้าประวัติ"],
         ["ยังไม่ส่งข้อมูล", readiness.notSubmitted, "ต้องติดตามก่อนปิดรอบ"],
         ["ประเมินผลได้", readiness.evaluable, "มีข้อมูลพอสำหรับสรุปผล"],
-        ["ยังประเมินไม่ได้", readiness.notEvaluable, "ส่งแล้วแต่ยังสรุปผลไม่ได้"],
-        ["ยังไม่ได้ตั้งค่าวิธีประเมินผล", readiness.missingEvaluateMode, "ควรกำหนดรูปแบบประเมิน"],
-        ["ยังตั้งกติกาเป้าหมายไม่ครบ", readiness.missingTargetRule, "ควรกำหนดเป้าหมายให้ครบ"],
-        ["ยังไม่ได้ตั้งค่ารอบรายงาน", readiness.missingReportingFrequency, "ควรกำหนดรอบรายงาน"]
+        ["ยังประเมินไม่ได้", readiness.notEvaluable, "ส่งแล้วแต่ข้อมูลยังไม่พอสรุปผล"],
+        ["ยังไม่ได้ตั้งค่าวิธีประเมินผล", readiness.missingEvaluateMode, "แนะนำให้กำหนดรูปแบบประเมิน"],
+        ["ยังตั้งกติกาเป้าหมายไม่ครบ", readiness.missingTargetRule, "แนะนำให้กำหนดเป้าหมายให้ครบ"],
+        ["ยังไม่ได้ตั้งค่ารอบรายงาน", readiness.missingReportingFrequency, "แนะนำให้กำหนดรอบรายงาน"]
       ];
 
       metricsEl.innerHTML = cards.map(function(card) {
@@ -9464,9 +9466,9 @@ function updateMonthlyCloseConsoleRoleState() {
 
       badgesEl.innerHTML = '' +
         '<span class="' + getMonthlyCloseInfoBadgeClass(quality.canClose === true ? "success" : "danger") + '">' +
-          (quality.canClose === true ? "พร้อม" : "ห้ามปิดรอบ " + Number(quality.criticalCount || 0)) +
+          (quality.canClose === true ? "ปิดรอบได้" : "ห้ามปิดรอบ " + criticalCount) +
         '</span>' +
-        '<span class="' + getMonthlyCloseInfoBadgeClass("warning") + '">ควรตรวจสอบ ' + Number(quality.warningCount || 0) + '</span>' +
+        '<span class="' + getMonthlyCloseInfoBadgeClass("warning") + '">แนะนำให้ตรวจสอบ ' + warningCount + '</span>' +
         '<span class="' + getMonthlyCloseInfoBadgeClass("") + '">ตรวจแล้ว ' + Number(preview.total || 0) + ' KPI</span>';
 
       const fieldText = topFields.length
@@ -9478,10 +9480,14 @@ function updateMonthlyCloseConsoleRoleState() {
       notesEl.innerHTML =
         '<div><strong>คำแนะนำ:</strong> ' +
           (quality.canClose === true
-            ? 'การตรวจล่าสุดไม่พบปัญหาที่ห้ามปิดรอบ และสามารถปิดรอบได้'
+            ? (
+                warningCount > 0
+                  ? 'ปิดรอบได้ เพราะไม่พบรายการห้ามปิดรอบ แต่ควรใช้ตัวกรองด้านล่างไล่ดูรายการแนะนำ'
+                  : 'ปิดรอบได้ เพราะไม่พบรายการห้ามปิดรอบและไม่พบรายการแนะนำเพิ่มเติม'
+              )
             : 'ควรจัดการปัญหาที่ห้ามปิดรอบให้เรียบร้อยก่อนปิดรอบ') +
         '</div>' +
-        '<div class="mt-1"><strong>ช่องข้อมูลที่พบปัญหาบ่อย:</strong> ' + fieldText + '</div>' +
+        '<div class="mt-1"><strong>ช่องข้อมูลที่ควรตรวจบ่อย:</strong> ' + fieldText + '</div>' +
         '<div class="mt-1"><strong>หมายเหตุ:</strong> การตรวจความพร้อมไม่บันทึกข้อมูลลง TaskHistory</div>';
     }
 
@@ -9508,8 +9514,8 @@ function updateMonthlyCloseConsoleRoleState() {
         groups: {
           warnings: {
             key: "warnings",
-            title: "ควรตรวจสอบก่อนปิดรอบ",
-            description: "รายการเตือนจากการตรวจความพร้อม",
+            title: "รายการแนะนำให้ตรวจสอบ",
+            description: "รายการเตือนจากการตรวจความพร้อม ไม่ใช่เหตุห้ามปิดรอบหากไม่มีปัญหาสำคัญ",
             count: list.length,
             items: items
           }
@@ -9559,7 +9565,7 @@ function updateMonthlyCloseConsoleRoleState() {
       }
 
       if (groupKey === "notEvaluable") {
-        return "critical";
+        return "warning";
       }
 
       const raw = [
@@ -9583,7 +9589,7 @@ function updateMonthlyCloseConsoleRoleState() {
     function getMonthlyCloseQueueSeverityLabel_(severity) {
       if (severity === "critical") return "ห้ามปิดรอบ";
       if (severity === "info") return "ข้อมูลประกอบ";
-      return "ควรตรวจสอบ";
+      return "แนะนำให้ตรวจสอบ";
     }
 
     function getMonthlyCloseQueueGroupSeverity_(items, groupKey) {
@@ -9679,8 +9685,8 @@ function updateMonthlyCloseConsoleRoleState() {
               '</div>' +
             '</div>' +
           '</div>' +
-          '<div class="close-console__queue-issue"><strong>ปัญหา:</strong> ' + escapeHTML(item.issueText || "-") + '</div>' +
-          '<div class="close-console__queue-action"><strong>ควรทำ:</strong> ' + escapeHTML(item.recommendedAction || "-") + '</div>' +
+          '<div class="close-console__queue-issue"><strong>ประเด็น:</strong> ' + escapeHTML(item.issueText || "-") + '</div>' +
+          '<div class="close-console__queue-action"><strong>แนะนำ:</strong> ' + escapeHTML(item.recommendedAction || "-") + '</div>' +
         '</article>';
     }
 
@@ -9705,7 +9711,7 @@ function updateMonthlyCloseConsoleRoleState() {
       let filteredTotal = 0;
 
       if (!queue || !totalItems) {
-        container.innerHTML = '<div class="close-console__empty">ไม่พบรายการที่ต้องติดตามเพิ่มเติมในตอนนี้</div>';
+        container.innerHTML = '<div class="close-console__empty">ไม่พบรายการแนะนำเพิ่มเติมในตอนนี้</div>';
         return;
       }
 
@@ -9758,7 +9764,7 @@ function updateMonthlyCloseConsoleRoleState() {
       container.innerHTML =
         '<div class="close-console__queue-summary">' +
           '<span>แสดง ' + escapeHTML(String(filteredTotal)) + ' จาก ' + escapeHTML(String(totalItems)) + ' รายการ</span>' +
-          '<span>' + (activeFilterText ? 'ตัวกรอง: ' + activeFilterText : 'ใช้ตัวกรองด้านบนเพื่อแยกรายการที่ต้องแก้ก่อนปิดรอบ') + '</span>' +
+          '<span>' + (activeFilterText ? 'ตัวกรอง: ' + activeFilterText : 'ใช้ตัวกรองด้านบนเพื่อแยกรายการที่ต้องการตรวจสอบ') + '</span>' +
         '</div>' +
         (
           filteredTotal > 0
@@ -9804,7 +9810,7 @@ function updateMonthlyCloseConsoleRoleState() {
       const value = String(severity || "").trim().toLowerCase();
 
       if (value === "critical") return "สำคัญมาก";
-      if (value === "warning") return "ควรแก้ไข";
+      if (value === "warning") return "ควรตรวจสอบ";
       if (value === "info") return "ข้อมูลประกอบ";
 
       return severity || "";
@@ -10262,7 +10268,7 @@ function updateMonthlyCloseConsoleRoleState() {
             '<div><strong>ยังไม่ถึงรอบ:</strong> ' + escapeHTML(String(currentData?.preview?.notDue || 0)) + ' รายการ</div>' +
             '<div><strong>ยังไม่ส่งข้อมูล:</strong> ' + escapeHTML(String(currentData?.preview?.notSubmitted || 0)) + ' รายการ</div>' +
             (warningCount > 0
-              ? '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ยังมีรายการที่ควรตรวจสอบ ' + escapeHTML(String(warningCount)) + ' รายการ แต่ไม่มีปัญหาที่ห้ามปิดรอบ โปรดตรวจสอบก่อนยืนยัน</div>'
+              ? '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ปิดรอบได้ แต่ยังมีรายการแนะนำให้ตรวจสอบ ' + escapeHTML(String(warningCount)) + ' รายการ รายการเหล่านี้ไม่บล็อกการปิดรอบ</div>'
               : '') +
             '<div class="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">ระบบจะบันทึกข้อมูลรอบนี้ ล้างค่ารายเดือนเดิม และเลื่อนไปยังรอบถัดไปทันที</div>' +
           '</div>'
