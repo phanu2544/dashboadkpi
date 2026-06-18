@@ -155,6 +155,21 @@ function securityMaintenanceResponse_() {
   };
 }
 
+function securityMaintenanceJsonResponse_() {
+  return JSON.stringify(securityMaintenanceResponse_());
+}
+
+function securityMaintenanceTextResponse_() {
+  return "⛔ " + securityMaintenanceResponse_().message;
+}
+
+function throwSecurityMaintenance_() {
+  const response = securityMaintenanceResponse_();
+  const error = new Error(response.message);
+  error.name = response.code;
+  throw error;
+}
+
 function isSelfRegistrationEnabled_() {
   return String(
     PropertiesService.getScriptProperties()
@@ -340,7 +355,7 @@ function getTasksByYear(year) {
  * @returns {string} A JSON string with the result.
  */
 function deleteTask(taskId) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -432,7 +447,7 @@ function exportTasksToCSV(startDate, endDate) {
  * @returns {string} Download URL
  */
 function createHTMLDownloadUrl(startDate, endDate) {
-  return securityMaintenanceResponse_();
+  return throwSecurityMaintenance_();
 
   try {
     const tasks = getFilteredTasks(startDate, endDate); // You'd need to implement this
@@ -481,7 +496,7 @@ function generateStyledHTML(tasks) {
   return html;
 }
 function createCSVDownloadUrl(startDate, endDate) {
-  return securityMaintenanceResponse_();
+  return throwSecurityMaintenance_();
 
   try {
     const csvData = exportTasksToCSV(startDate, endDate);
@@ -503,7 +518,7 @@ function createCSVDownloadUrl(startDate, endDate) {
  * @returns {string} A JSON string with the result.
  */
 function addTask(taskObject) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -643,7 +658,7 @@ function addTask(taskObject) {
  * @returns {string} A JSON string with the result.
  */
 function updateTaskStatus(taskId, newStatus) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -679,7 +694,7 @@ function updateTaskStatus(taskId, newStatus) {
  * @returns {string} A JSON string with the result.
  */
 function updateTaskProgress(taskId, progress) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -721,7 +736,7 @@ function updateTaskProgress(taskId, progress) {
 
 // ✅ อัปเดต ProgressOutcome (custom mode)
 function updateTaskProgressOutcome(taskId, value) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -789,7 +804,7 @@ function valueOrBlank_(value) {
  * @returns {string} A JSON string with the result.
  */
 function updateTaskDetails(taskObject) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp
@@ -1222,7 +1237,7 @@ function registerUser(name, username, password) {
 
 // ของuser.Poup.html ดึงข้อมูล
 function getAllUsers(currentUsername) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
 
@@ -1261,7 +1276,7 @@ function getAllUsers(currentUsername) {
 
 // ปรับให้รับ currentUsername (ค่าที่มาจาก client)
 function updateUserRole(id, newRole, currentUsername) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('login');
@@ -1330,7 +1345,7 @@ function updateUserRole(id, newRole, currentUsername) {
 }
 
 function deleteUser(id, currentUsername) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('login');
@@ -1470,7 +1485,7 @@ function getTasksByMonth(year, month) {
 
 
 function updateTaskProgressAndStatus(data) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -3562,7 +3577,7 @@ function getSystemConfig_() {
 }
 
 function saveSnapshotConfig(data, currentUsername) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceTextResponse_();
 
   try {
     requireSuperAdmin_(currentUsername);
@@ -3592,7 +3607,7 @@ function saveSnapshotConfig(data, currentUsername) {
 
 
 function snapshotNow(currentUsername) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceTextResponse_();
 
   try {
     requireSuperAdmin_(currentUsername);
@@ -3673,7 +3688,7 @@ function ensureTaskHistoryReportingHeaders_() {
   };
 }
           function closeMonthlyPeriod(currentUsername) {
-            return securityMaintenanceResponse_();
+            return securityMaintenanceTextResponse_();
 
             const lock = LockService.getScriptLock();
             let locked = false;
@@ -5138,7 +5153,7 @@ function getTaskHistoryByTaskId(taskId) {
 
 
 function resetMonthlyTaskProgress(currentUsername) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceTextResponse_();
 
   try {
     requireSuperAdmin_(currentUsername);
@@ -5811,7 +5826,7 @@ function markTaskSubmittedForRow(sheet, rowIndex, submittedBy) {
 }
 
 function cancelTaskMonthlySubmission(taskId, cancelledBy) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     ensureInputStatusColumns_();
@@ -6359,7 +6374,7 @@ function hasMonthlyInput(taskObject) {
           * ไม่แก้ TaskData
           */
           function resetPeriodControlToCurrentMonth(currentUsername) {
-            return securityMaintenanceResponse_();
+            return securityMaintenanceTextResponse_();
 
             try {
               const beforePeriod = getActivePeriodInfo();
@@ -6643,7 +6658,7 @@ function hasMonthlyInput(taskObject) {
            * ไม่แก้ TaskData
            */
           function openPreviousMonthInputPeriod(currentUsername) {
-            return securityMaintenanceResponse_();
+            return securityMaintenanceTextResponse_();
 
             try {
               requireSuperAdmin_(currentUsername);
