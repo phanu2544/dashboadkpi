@@ -143,6 +143,13 @@ const HISTORY_HEADERS = [
 const TELEGRAM_BOT_TOKEN_PROPERTY_KEY = "BOT_TOKEN";
 const TELEGRAM_ALERT_CHAT_ID_PROPERTY_KEY = "ALERT_CHAT_ID";
 const SELF_REGISTRATION_ENABLED_PROPERTY_KEY = "SELF_REGISTRATION_ENABLED";
+const AUTH_SESSION_PROPERTY_PREFIX = "AUTH_SESSION_V1_";
+const AUTH_SESSION_VERSION = 1;
+const AUTH_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+const AUTH_SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+const AUTH_SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
+const AUTH_SESSION_MAX_PER_USER = 3;
+const AUTH_SESSION_LOCK_TIMEOUT_MS = 10000;
 
 function securityMaintenanceResponse_() {
   return {
@@ -155,11 +162,409 @@ function securityMaintenanceResponse_() {
   };
 }
 
+function securityMaintenanceJsonResponse_() {
+  return JSON.stringify(securityMaintenanceResponse_());
+}
+
+function securityMaintenanceTextResponse_() {
+  return "⛔ " + securityMaintenanceResponse_().message;
+}
+
+function throwSecurityMaintenance_() {
+  const response = securityMaintenanceResponse_();
+  const error = new Error(response.message);
+  error.name = response.code;
+  throw error;
+}
+
 function isSelfRegistrationEnabled_() {
   return String(
     PropertiesService.getScriptProperties()
       .getProperty(SELF_REGISTRATION_ENABLED_PROPERTY_KEY) || ""
   ).trim().toLowerCase() === "true";
+}
+
+/**
+ * R2A session foundation.
+ *
+ * These helpers are intentionally private and are not wired to loginCheck or
+ * any protected RPC yet. R1 maintenance guards remain the active containment
+ * boundary until the later auth phases are reviewed and deployed.
+ */
+function generateSessionToken_() {
+  return (
+    Utilities.getUuid().replace(/-/g, "") +
+    Utilities.getUuid().replace(/-/g, "")
+  );
+}
+
+function hashSessionToken_(token) {
+  const normalizedToken = String(token || "").trim();
+  if (!normalizedToken) {
+    throw new Error("Session token is required");
+  }
+
+  const digest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    normalizedToken,
+    Utilities.Charset.UTF_8
+  );
+
+  return digest
+    .map(function(byte) {
+      const unsignedByte = byte < 0 ? byte + 256 : byte;
+      return unsignedByte.toString(16).padStart(2, "0");
+    })
+    .join("");
+}
+
+function getSessionPropertyKey_(tokenHash) {
+  return AUTH_SESSION_PROPERTY_PREFIX + String(tokenHash || "").trim();
+}
+
+function withAuthSessionLock_(callback) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(AUTH_SESSION_LOCK_TIMEOUT_MS);
+
+  try {
+    return callback();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function parseSessionRecord_(rawValue) {
+  if (!rawValue) return null;
+
+  try {
+    const record = JSON.parse(rawValue);
+    if (
+      !record ||
+      Number(record.version) !== AUTH_SESSION_VERSION ||
+      !String(record.userId || "").trim() ||
+      !Number.isFinite(Number(record.createdAt)) ||
+      !Number.isFinite(Number(record.lastSeenAt)) ||
+      !Number.isFinite(Number(record.expiresAt))
+    ) {
+      return null;
+    }
+
+    return {
+      version: AUTH_SESSION_VERSION,
+      userId: String(record.userId).trim(),
+      createdAt: Number(record.createdAt),
+      lastSeenAt: Number(record.lastSeenAt),
+      expiresAt: Number(record.expiresAt)
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+function isSessionExpired_(record, nowMs) {
+  if (!record) return true;
+
+  const now = Number(nowMs);
+  return (
+    record.expiresAt <= now ||
+    record.lastSeenAt + AUTH_SESSION_IDLE_TIMEOUT_MS <= now
+  );
+}
+
+function cleanupExpiredSessionsUnlocked_(properties, nowMs) {
+  const allProperties = properties.getProperties();
+  let deletedCount = 0;
+
+  Object.keys(allProperties).forEach(function(key) {
+    if (!key.startsWith(AUTH_SESSION_PROPERTY_PREFIX)) return;
+
+    const record = parseSessionRecord_(allProperties[key]);
+    if (!record || isSessionExpired_(record, nowMs)) {
+      properties.deleteProperty(key);
+      deletedCount++;
+    }
+  });
+
+  return deletedCount;
+}
+
+function cleanupExpiredSessions_() {
+  return withAuthSessionLock_(function() {
+    const properties = PropertiesService.getScriptProperties();
+    return cleanupExpiredSessionsUnlocked_(properties, Date.now());
+  });
+}
+
+function getLoginUserRecords_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("login");
+  if (!sheet) {
+    throw new Error("User directory is unavailable");
+  }
+
+  const values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+
+  const headers = values[0].map(function(header) {
+    return String(header || "").trim().toLowerCase();
+  });
+  const idColumn = headers.indexOf("id");
+  const nameColumn = headers.indexOf("name");
+  const usernameColumn = headers.indexOf("username");
+  const roleColumn = headers.indexOf("role");
+
+  if (idColumn === -1 || usernameColumn === -1) {
+    throw new Error("User directory schema is invalid");
+  }
+
+  return values.slice(1).reduce(function(records, row) {
+    const id = String(row[idColumn] || "").trim();
+    const username = String(row[usernameColumn] || "").trim();
+    if (!id && !username) return records;
+
+    records.push({
+      id: id,
+      name: nameColumn === -1 ? "" : String(row[nameColumn] || "").trim(),
+      username: username,
+      normalizedUsername: username.toLowerCase(),
+      role: roleColumn === -1
+        ? "user"
+        : String(row[roleColumn] || "user").trim().toLowerCase()
+    });
+    return records;
+  }, []);
+}
+
+function findUserById_(userId) {
+  const normalizedId = String(userId || "").trim();
+  if (!normalizedId) return null;
+
+  const matches = getLoginUserRecords_().filter(function(user) {
+    return user.id === normalizedId;
+  });
+
+  if (matches.length > 1) {
+    throw new Error("Duplicate immutable user ID");
+  }
+
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function findUserByUsername_(username) {
+  const normalizedUsername = String(username || "").trim().toLowerCase();
+  if (!normalizedUsername) return null;
+
+  const matches = getLoginUserRecords_().filter(function(user) {
+    return user.normalizedUsername === normalizedUsername;
+  });
+
+  if (matches.length > 1) {
+    throw new Error("Duplicate username");
+  }
+
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function createSession_(userId) {
+  const user = findUserById_(userId);
+  if (!user || !user.id) {
+    throw new Error("Authenticated user is unavailable");
+  }
+
+  return withAuthSessionLock_(function() {
+    const properties = PropertiesService.getScriptProperties();
+    const nowMs = Date.now();
+    cleanupExpiredSessionsUnlocked_(properties, nowMs);
+
+    const allProperties = properties.getProperties();
+    const userSessions = Object.keys(allProperties)
+      .filter(function(key) {
+        return key.startsWith(AUTH_SESSION_PROPERTY_PREFIX);
+      })
+      .map(function(key) {
+        return {
+          key: key,
+          record: parseSessionRecord_(allProperties[key])
+        };
+      })
+      .filter(function(item) {
+        return item.record && item.record.userId === user.id;
+      })
+      .sort(function(a, b) {
+        return a.record.createdAt - b.record.createdAt;
+      });
+
+    while (userSessions.length >= AUTH_SESSION_MAX_PER_USER) {
+      properties.deleteProperty(userSessions.shift().key);
+    }
+
+    let token = "";
+    let tokenHash = "";
+    let propertyKey = "";
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      token = generateSessionToken_();
+      tokenHash = hashSessionToken_(token);
+      propertyKey = getSessionPropertyKey_(tokenHash);
+      if (!properties.getProperty(propertyKey)) break;
+      token = "";
+    }
+
+    if (!token) {
+      throw new Error("Unable to create a unique session");
+    }
+
+    const record = {
+      version: AUTH_SESSION_VERSION,
+      userId: user.id,
+      createdAt: nowMs,
+      lastSeenAt: nowMs,
+      expiresAt: nowMs + AUTH_SESSION_TTL_MS
+    };
+    properties.setProperty(propertyKey, JSON.stringify(record));
+
+    return {
+      token: token,
+      expiresAt: new Date(record.expiresAt).toISOString(),
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        role: user.role
+      }
+    };
+  });
+}
+
+function validateSession_(token) {
+  const normalizedToken = String(token || "").trim();
+  if (!normalizedToken) {
+    return {
+      valid: false,
+      code: "AUTH_SESSION_REQUIRED",
+      message: "Authentication is required"
+    };
+  }
+
+  let tokenHash;
+  try {
+    tokenHash = hashSessionToken_(normalizedToken);
+  } catch (error) {
+    return {
+      valid: false,
+      code: "AUTH_SESSION_INVALID",
+      message: "Authentication is invalid"
+    };
+  }
+
+  const propertyKey = getSessionPropertyKey_(tokenHash);
+  let record;
+
+  try {
+    record = withAuthSessionLock_(function() {
+      const properties = PropertiesService.getScriptProperties();
+      const rawValue = properties.getProperty(propertyKey);
+      const parsedRecord = parseSessionRecord_(rawValue);
+      const nowMs = Date.now();
+
+      if (!parsedRecord || isSessionExpired_(parsedRecord, nowMs)) {
+        if (rawValue) properties.deleteProperty(propertyKey);
+        return null;
+      }
+
+      if (
+        nowMs - parsedRecord.lastSeenAt >=
+        AUTH_SESSION_TOUCH_INTERVAL_MS
+      ) {
+        parsedRecord.lastSeenAt = nowMs;
+        properties.setProperty(propertyKey, JSON.stringify(parsedRecord));
+      }
+
+      return parsedRecord;
+    });
+  } catch (error) {
+    return {
+      valid: false,
+      code: "AUTH_SESSION_UNAVAILABLE",
+      message: "Authentication is temporarily unavailable"
+    };
+  }
+
+  if (!record) {
+    return {
+      valid: false,
+      code: "AUTH_SESSION_INVALID",
+      message: "Authentication is invalid or expired"
+    };
+  }
+
+  let user;
+  try {
+    user = findUserById_(record.userId);
+  } catch (error) {
+    revokeSession_(normalizedToken);
+    return {
+      valid: false,
+      code: "AUTH_USER_INVALID",
+      message: "Authentication is invalid"
+    };
+  }
+
+  if (!user) {
+    revokeSession_(normalizedToken);
+    return {
+      valid: false,
+      code: "AUTH_USER_INVALID",
+      message: "Authentication is invalid"
+    };
+  }
+
+  return {
+    valid: true,
+    session: {
+      userId: record.userId,
+      createdAt: new Date(record.createdAt).toISOString(),
+      lastSeenAt: new Date(record.lastSeenAt).toISOString(),
+      expiresAt: new Date(record.expiresAt).toISOString()
+    },
+    user: {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      role: user.role
+    }
+  };
+}
+
+function requireSession_(token) {
+  const validation = validateSession_(token);
+  if (!validation.valid) {
+    const error = new Error(validation.message);
+    error.name = validation.code;
+    throw error;
+  }
+
+  return validation;
+}
+
+function revokeSession_(token) {
+  const normalizedToken = String(token || "").trim();
+  if (!normalizedToken) return false;
+
+  let propertyKey;
+  try {
+    propertyKey = getSessionPropertyKey_(
+      hashSessionToken_(normalizedToken)
+    );
+  } catch (error) {
+    return false;
+  }
+
+  return withAuthSessionLock_(function() {
+    const properties = PropertiesService.getScriptProperties();
+    const existed = properties.getProperty(propertyKey) !== null;
+    properties.deleteProperty(propertyKey);
+    return existed;
+  });
 }
 
 function getTelegramConfig_() {
@@ -340,7 +745,7 @@ function getTasksByYear(year) {
  * @returns {string} A JSON string with the result.
  */
 function deleteTask(taskId) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -432,7 +837,7 @@ function exportTasksToCSV(startDate, endDate) {
  * @returns {string} Download URL
  */
 function createHTMLDownloadUrl(startDate, endDate) {
-  return securityMaintenanceResponse_();
+  return throwSecurityMaintenance_();
 
   try {
     const tasks = getFilteredTasks(startDate, endDate); // You'd need to implement this
@@ -481,7 +886,7 @@ function generateStyledHTML(tasks) {
   return html;
 }
 function createCSVDownloadUrl(startDate, endDate) {
-  return securityMaintenanceResponse_();
+  return throwSecurityMaintenance_();
 
   try {
     const csvData = exportTasksToCSV(startDate, endDate);
@@ -503,7 +908,7 @@ function createCSVDownloadUrl(startDate, endDate) {
  * @returns {string} A JSON string with the result.
  */
 function addTask(taskObject) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -643,7 +1048,7 @@ function addTask(taskObject) {
  * @returns {string} A JSON string with the result.
  */
 function updateTaskStatus(taskId, newStatus) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -679,7 +1084,7 @@ function updateTaskStatus(taskId, newStatus) {
  * @returns {string} A JSON string with the result.
  */
 function updateTaskProgress(taskId, progress) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -721,7 +1126,7 @@ function updateTaskProgress(taskId, progress) {
 
 // ✅ อัปเดต ProgressOutcome (custom mode)
 function updateTaskProgressOutcome(taskId, value) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -789,7 +1194,7 @@ function valueOrBlank_(value) {
  * @returns {string} A JSON string with the result.
  */
 function updateTaskDetails(taskObject) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp
@@ -1222,7 +1627,7 @@ function registerUser(name, username, password) {
 
 // ของuser.Poup.html ดึงข้อมูล
 function getAllUsers(currentUsername) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
 
@@ -1261,7 +1666,7 @@ function getAllUsers(currentUsername) {
 
 // ปรับให้รับ currentUsername (ค่าที่มาจาก client)
 function updateUserRole(id, newRole, currentUsername) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('login');
@@ -1330,7 +1735,7 @@ function updateUserRole(id, newRole, currentUsername) {
 }
 
 function deleteUser(id, currentUsername) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('login');
@@ -1470,7 +1875,7 @@ function getTasksByMonth(year, month) {
 
 
 function updateTaskProgressAndStatus(data) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -3562,7 +3967,7 @@ function getSystemConfig_() {
 }
 
 function saveSnapshotConfig(data, currentUsername) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceTextResponse_();
 
   try {
     requireSuperAdmin_(currentUsername);
@@ -3592,7 +3997,7 @@ function saveSnapshotConfig(data, currentUsername) {
 
 
 function snapshotNow(currentUsername) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceTextResponse_();
 
   try {
     requireSuperAdmin_(currentUsername);
@@ -3673,7 +4078,7 @@ function ensureTaskHistoryReportingHeaders_() {
   };
 }
           function closeMonthlyPeriod(currentUsername) {
-            return securityMaintenanceResponse_();
+            return securityMaintenanceTextResponse_();
 
             const lock = LockService.getScriptLock();
             let locked = false;
@@ -5138,7 +5543,7 @@ function getTaskHistoryByTaskId(taskId) {
 
 
 function resetMonthlyTaskProgress(currentUsername) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceTextResponse_();
 
   try {
     requireSuperAdmin_(currentUsername);
@@ -5811,7 +6216,7 @@ function markTaskSubmittedForRow(sheet, rowIndex, submittedBy) {
 }
 
 function cancelTaskMonthlySubmission(taskId, cancelledBy) {
-  return securityMaintenanceResponse_();
+  return securityMaintenanceJsonResponse_();
 
   try {
     ensureInputStatusColumns_();
@@ -6359,7 +6764,7 @@ function hasMonthlyInput(taskObject) {
           * ไม่แก้ TaskData
           */
           function resetPeriodControlToCurrentMonth(currentUsername) {
-            return securityMaintenanceResponse_();
+            return securityMaintenanceTextResponse_();
 
             try {
               const beforePeriod = getActivePeriodInfo();
@@ -6643,7 +7048,7 @@ function hasMonthlyInput(taskObject) {
            * ไม่แก้ TaskData
            */
           function openPreviousMonthInputPeriod(currentUsername) {
-            return securityMaintenanceResponse_();
+            return securityMaintenanceTextResponse_();
 
             try {
               requireSuperAdmin_(currentUsername);

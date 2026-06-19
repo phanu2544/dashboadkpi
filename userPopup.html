@@ -141,8 +141,27 @@
                 // 1️⃣ โหลดผู้ใช้ก่อน
                 google.script.run
                 .withSuccessHandler(res => {
-                const users = JSON.parse(res);
+                let users;
+                try {
+                users = typeof res === 'string' ? JSON.parse(res) : res;
+                } catch (error) {
+                console.error('❌ รูปแบบข้อมูลผู้ใช้ไม่ถูกต้อง:', error);
+                showLoader(false);
+                Swal.fire('❌', 'ไม่สามารถประมวลผลข้อมูลผู้ใช้ได้', 'error');
+                return;
+                }
                 console.log('✅ users received:', users);
+
+                if (users && users.code === 'SECURITY_MAINTENANCE') {
+                showLoader(false);
+                Swal.fire({
+                  icon: 'warning',
+                  title: 'ระบบจัดการผู้ใช้ปิดชั่วคราว',
+                  text: users.message || 'ระบบกำลังปรับปรุงการควบคุมความปลอดภัย',
+                  confirmButtonText: 'ตกลง'
+                });
+                return;
+                }
                 
                 if (!Array.isArray(users) || users.length === 0) {
                 Swal.fire('⚠️', 'ไม่พบข้อมูลผู้ใช้', 'info');
