@@ -8033,6 +8033,206 @@ body {
         }
 
     window.currentUser = null; // เก็บข้อมูลผู้ใช้ที่ล็อกอินอยู่
+    window.currentSession = null; // session token อยู่ใน memory เท่านั้น
+    let clientSessionExpiryTimer_ = null;
+    let clientSessionRefreshInFlight_ = false;
+    const CLIENT_SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+    const CLIENT_SESSION_REVALIDATE_MS = 5 * 60 * 1000;
+    const CLIENT_SESSION_REFRESH_THROTTLE_MS = 30 * 1000;
+
+    function clearClientSessionTimer_() {
+      if (clientSessionExpiryTimer_) {
+        clearTimeout(clientSessionExpiryTimer_);
+        clientSessionExpiryTimer_ = null;
+      }
+    }
+
+    function getCurrentSessionToken_() {
+      return String(window.currentSession?.token || "");
+    }
+
+    function isClientSessionExpired_() {
+      const expiresAt = Date.parse(window.currentSession?.expiresAt || "");
+      const lastActivityAt = Number(
+        window.currentSession?.lastActivityAt || 0
+      );
+      const now = Date.now();
+      return (
+        !Number.isFinite(expiresAt) ||
+        expiresAt <= now ||
+        !Number.isFinite(lastActivityAt) ||
+        lastActivityAt + CLIENT_SESSION_IDLE_TIMEOUT_MS <= now
+      );
+    }
+
+    function scheduleClientSessionExpiry_() {
+      clearClientSessionTimer_();
+      if (!window.currentSession) return;
+
+      const expiresAt = Date.parse(window.currentSession.expiresAt || "");
+      const idleExpiresAt =
+        Number(window.currentSession.lastActivityAt || 0) +
+        CLIENT_SESSION_IDLE_TIMEOUT_MS;
+      const nextExpiryAt = Math.min(expiresAt, idleExpiresAt);
+      const delay = Math.max(0, nextExpiryAt - Date.now());
+
+      clientSessionExpiryTimer_ = setTimeout(
+        handleClientSessionExpired_,
+        Math.min(delay, 2147483647)
+      );
+    }
+
+    function recordClientSessionActivity_() {
+      if (!window.currentSession) return;
+      if (isClientSessionExpired_()) {
+        handleClientSessionExpired_();
+        return;
+      }
+
+      const now = Date.now();
+      window.currentSession.lastActivityAt = now;
+      scheduleClientSessionExpiry_();
+
+      const lastServerCheckAt = Math.max(
+        Number(window.currentSession.lastValidatedAt || 0),
+        Number(window.currentSession.lastValidationAttemptAt || 0)
+      );
+      if (now - lastServerCheckAt >= CLIENT_SESSION_REVALIDATE_MS) {
+        refreshClientSessionContext_();
+      }
+    }
+
+    function normalizeServerSessionUser_(rawUser) {
+      const id = String(rawUser?.id || "").trim();
+      const username = String(rawUser?.username || "").trim();
+      const role = String(rawUser?.role || "").trim();
+      if (!id || !username || !role) return null;
+
+      return {
+        id,
+        username,
+        name: String(rawUser?.name || ""),
+        role
+      };
+    }
+
+    function establishClientSession_(response) {
+      const token = String(response?.sessionToken || "").trim();
+      const expiresAt = String(response?.sessionExpiresAt || "").trim();
+      const serverUser = normalizeServerSessionUser_(response?.user);
+
+      if (!token || !serverUser || !Number.isFinite(Date.parse(expiresAt))) {
+        return false;
+      }
+
+      const now = Date.now();
+      clearClientSessionTimer_();
+      clientSessionRefreshInFlight_ = false;
+      window.currentSession = {
+        token,
+        expiresAt,
+        lastActivityAt: now,
+        lastValidatedAt: now,
+        lastValidationAttemptAt: now
+      };
+      window.currentUser = serverUser;
+
+      scheduleClientSessionExpiry_();
+      return true;
+    }
+
+    function clearClientSessionState_() {
+      clearClientSessionTimer_();
+      clientSessionRefreshInFlight_ = false;
+      window.currentSession = null;
+      window.currentUser = null;
+    }
+
+    function resetAuthenticatedUi_() {
+      clearClientSessionState_();
+      monthlyCloseConsoleState.hasExecutedDryRun = false;
+      monthlyCloseConsoleState.lastDryRunBackendOk = false;
+      monthlyCloseConsoleState.lastDryRunCompletedAt = 0;
+      monthlyCloseConsoleState.lastDryRunErrorText = "";
+      monthlyCloseConsoleState.lastDryRunSource = "";
+
+      clearHeaderUser();
+      applySidebarVisibilityByRole();
+
+      document.getElementById('logoutBtn').style.display = 'none';
+      document.getElementById('loginBtn').style.display = 'inline-block';
+      document.getElementById('addTaskBtn').style.display = 'none';
+      document.getElementById('manageUsersBtn').style.display = 'none';
+
+      renderFilteredTasks();
+      renderExecutiveFollowUpTable(state.tasks || []);
+    }
+
+    function handleClientSessionExpired_() {
+      if (!window.currentSession) return;
+
+      resetAuthenticatedUi_();
+      showLoader(false);
+      openLogin();
+      Swal.fire({
+        icon: 'warning',
+        title: 'เซสชันหมดอายุ',
+        text: 'กรุณาเข้าสู่ระบบใหม่',
+        confirmButtonText: 'ตกลง'
+      });
+    }
+
+    function refreshClientSessionContext_() {
+      const sessionToken = getCurrentSessionToken_();
+      if (!sessionToken) return;
+      if (isClientSessionExpired_()) {
+        handleClientSessionExpired_();
+        return;
+      }
+      if (clientSessionRefreshInFlight_) return;
+
+      const now = Date.now();
+      const lastAttemptAt = Number(
+        window.currentSession.lastValidationAttemptAt || 0
+      );
+      if (now - lastAttemptAt < CLIENT_SESSION_REFRESH_THROTTLE_MS) return;
+
+      clientSessionRefreshInFlight_ = true;
+      window.currentSession.lastValidationAttemptAt = now;
+      google.script.run
+        .withSuccessHandler((response) => {
+          clientSessionRefreshInFlight_ = false;
+          if (getCurrentSessionToken_() !== sessionToken) return;
+          const serverUser = normalizeServerSessionUser_(response?.user);
+          if (!response?.success || !serverUser) {
+            handleClientSessionExpired_();
+            return;
+          }
+
+          window.currentUser = serverUser;
+          if (response.session?.expiresAt) {
+            window.currentSession.expiresAt = response.session.expiresAt;
+          }
+          window.currentSession.lastActivityAt = Date.now();
+          window.currentSession.lastValidatedAt = Date.now();
+          scheduleClientSessionExpiry_();
+          setHeaderUser(window.currentUser);
+          applySidebarVisibilityByRole();
+          updateAppToolbarActions_(currentAppPage);
+        })
+        .withFailureHandler(() => {
+          clientSessionRefreshInFlight_ = false;
+          // Network failure alone must not destroy an otherwise valid session.
+        })
+        .getSessionContext(sessionToken);
+    }
+
+    ['pointerdown', 'keydown'].forEach((eventName) => {
+      window.addEventListener(eventName, recordClientSessionActivity_, {
+        passive: true
+      });
+    });
+    window.addEventListener('focus', refreshClientSessionContext_);
 
 
     // ✅ Production Header User Display
@@ -10427,12 +10627,11 @@ function updateMonthlyCloseConsoleRoleState() {
           showLoader(false);
 
           if (res.success) {
-            // ✅ เก็บข้อมูลผู้ใช้แบบ global
-            window.currentUser = {
-              username: res.username || username,
-              name: res.name,
-              role: res.role || 'user' // ✅ ถ้า backend ไม่ส่ง role จะถือว่าเป็น user
-            };
+            if (!establishClientSession_(res)) {
+              msg.textContent = '⚠️ ไม่สามารถเริ่มเซสชันที่ปลอดภัยได้';
+              openLogin();
+              return;
+            }
             monthlyCloseConsoleState.hasExecutedDryRun = false;
             monthlyCloseConsoleState.lastDryRunBackendOk = false;
             monthlyCloseConsoleState.lastDryRunCompletedAt = 0;
@@ -10535,34 +10734,7 @@ function updateMonthlyCloseConsoleRoleState() {
         function closeLogout() {
           document.getElementById('logoutPopup').style.display = 'none';
         }
-    function logout() {
-      showLoader(true); // ✅ แสดง loader ตอนเริ่มออกจากระบบ
-      setTimeout(() => {
-        closeLogout();
-        window.currentUser = null; // ✅ รีเซ็ต global variable ตัวจริง
-        monthlyCloseConsoleState.hasExecutedDryRun = false;
-        monthlyCloseConsoleState.lastDryRunBackendOk = false;
-        monthlyCloseConsoleState.lastDryRunCompletedAt = 0;
-        monthlyCloseConsoleState.lastDryRunErrorText = "";
-        monthlyCloseConsoleState.lastDryRunSource = "";
-        console.log("👋 ออกจากระบบ, currentUser =", window.currentUser);
-        
-        clearHeaderUser();
-        applySidebarVisibilityByRole();
-
-        document.getElementById('logoutBtn').style.display = 'none';
-        document.getElementById('loginBtn').style.display = 'inline-block';
-        document.getElementById('addTaskBtn').style.display = 'none';
-        document.getElementById('manageUsersBtn').style.display = 'none'; 
-
-        // ซ่อน loader หลังจากทำงานเสร็จ
-        showLoader(false);
-
-        // ✅ ซ่อนปุ่มแก้ไข / ลบ ทั้งหมดที่ render อยู่
-        renderFilteredTasks();
-        renderExecutiveFollowUpTable(state.tasks || []);
-
-        // แสดง Toast
+    function showLogoutToast_() {
         const toast = document.createElement('div');
         toast.textContent = '👋 ออกจากระบบสำเร็จ';
         toast.style = `
@@ -10573,7 +10745,34 @@ function updateMonthlyCloseConsoleRoleState() {
         `;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 2500);
-      }, 800);
+    }
+
+    function logout() {
+      showLoader(true);
+      closeLogout();
+
+      const sessionToken = getCurrentSessionToken_();
+      let completed = false;
+      const finishLogout = () => {
+        if (completed) return;
+        completed = true;
+        resetAuthenticatedUi_();
+        showLoader(false);
+        showLogoutToast_();
+      };
+
+      if (!sessionToken) {
+        finishLogout();
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(finishLogout)
+        .withFailureHandler(() => {
+          console.warn('Server session revocation was unavailable during logout');
+          finishLogout();
+        })
+        .logoutSession(sessionToken);
     }
 
 
