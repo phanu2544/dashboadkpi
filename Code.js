@@ -155,6 +155,47 @@ const AUTH_LOGIN_THROTTLE_VERSION = 1;
 const AUTH_LOGIN_MAX_FAILURES = 5;
 const AUTH_LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
+const AUTH_PERMISSIONS = Object.freeze({
+  SESSION_SELF: "session:self",
+  ADMIN_CONSOLE_VIEW: "admin_console:view",
+  USER_MANAGE: "users:manage",
+  SYSTEM_CONFIG_VIEW: "system_config:view",
+  SYSTEM_CONFIG_MANAGE: "system_config:manage",
+  MONTHLY_CLOSE_VIEW: "monthly_close:view",
+  MONTHLY_CLOSE_DRY_RUN: "monthly_close:dry_run",
+  MONTHLY_CLOSE_EXECUTE: "monthly_close:execute",
+  SNAPSHOT_VIEW: "snapshot:view",
+  SNAPSHOT_MANAGE: "snapshot:manage",
+  TASK_READ: "tasks:read",
+  TASK_MUTATE: "tasks:mutate",
+  EXPORT_SUMMARY: "export:summary",
+  EXPORT_RAW: "export:raw"
+});
+const AUTH_ROLE_PERMISSIONS = Object.freeze({
+  user: Object.freeze([
+    AUTH_PERMISSIONS.SESSION_SELF
+  ]),
+  admin: Object.freeze([
+    AUTH_PERMISSIONS.SESSION_SELF,
+    AUTH_PERMISSIONS.ADMIN_CONSOLE_VIEW,
+    AUTH_PERMISSIONS.SYSTEM_CONFIG_VIEW,
+    AUTH_PERMISSIONS.MONTHLY_CLOSE_VIEW,
+    AUTH_PERMISSIONS.MONTHLY_CLOSE_DRY_RUN,
+    AUTH_PERMISSIONS.SNAPSHOT_VIEW
+  ]),
+  superadmin: Object.freeze([
+    AUTH_PERMISSIONS.SESSION_SELF,
+    AUTH_PERMISSIONS.ADMIN_CONSOLE_VIEW,
+    AUTH_PERMISSIONS.USER_MANAGE,
+    AUTH_PERMISSIONS.SYSTEM_CONFIG_VIEW,
+    AUTH_PERMISSIONS.SYSTEM_CONFIG_MANAGE,
+    AUTH_PERMISSIONS.MONTHLY_CLOSE_VIEW,
+    AUTH_PERMISSIONS.MONTHLY_CLOSE_DRY_RUN,
+    AUTH_PERMISSIONS.MONTHLY_CLOSE_EXECUTE,
+    AUTH_PERMISSIONS.SNAPSHOT_VIEW,
+    AUTH_PERMISSIONS.SNAPSHOT_MANAGE
+  ])
+});
 
 function securityMaintenanceResponse_() {
   return {
@@ -549,6 +590,70 @@ function requireSession_(token) {
   }
 
   return validation;
+}
+
+function normalizeAuthRole_(role) {
+  return String(role || "").trim().toLowerCase();
+}
+
+function isKnownPermission_(permission) {
+  const normalizedPermission = String(permission || "").trim();
+  return Object.keys(AUTH_PERMISSIONS).some(function(key) {
+    return AUTH_PERMISSIONS[key] === normalizedPermission;
+  });
+}
+
+function getPermissionsForRole_(role) {
+  const normalizedRole = normalizeAuthRole_(role);
+  const permissions = AUTH_ROLE_PERMISSIONS[normalizedRole];
+  return permissions ? permissions.slice() : [];
+}
+
+function hasPermission_(role, permission) {
+  const normalizedPermission = String(permission || "").trim();
+  if (!isKnownPermission_(normalizedPermission)) return false;
+
+  return getPermissionsForRole_(role).indexOf(normalizedPermission) !== -1;
+}
+
+function buildAuthenticatedActor_(validation) {
+  const user = validation && validation.user;
+  if (!user || !String(user.id || "").trim()) {
+    const error = new Error("Authentication is invalid");
+    error.name = "AUTH_USER_INVALID";
+    throw error;
+  }
+
+  return {
+    id: String(user.id).trim(),
+    name: String(user.name || "").trim(),
+    username: String(user.username || "").trim(),
+    role: normalizeAuthRole_(user.role)
+  };
+}
+
+function requirePermission_(sessionToken, permission) {
+  const normalizedPermission = String(permission || "").trim();
+  if (!isKnownPermission_(normalizedPermission)) {
+    const unknownPermissionError = new Error("Access denied");
+    unknownPermissionError.name = "AUTH_PERMISSION_UNKNOWN";
+    throw unknownPermissionError;
+  }
+
+  const validation = requireSession_(sessionToken);
+  const actor = buildAuthenticatedActor_(validation);
+
+  if (!hasPermission_(actor.role, normalizedPermission)) {
+    const forbiddenError = new Error("Access denied");
+    forbiddenError.name = "AUTH_FORBIDDEN";
+    throw forbiddenError;
+  }
+
+  return {
+    actor: actor,
+    permission: normalizedPermission,
+    session: validation.session
+  };
 }
 
 function revokeSession_(token) {
