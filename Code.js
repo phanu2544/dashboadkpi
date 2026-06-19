@@ -150,6 +150,11 @@ const AUTH_SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const AUTH_SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 const AUTH_SESSION_MAX_PER_USER = 3;
 const AUTH_SESSION_LOCK_TIMEOUT_MS = 10000;
+const AUTH_LOGIN_THROTTLE_PROPERTY_PREFIX = "AUTH_LOGIN_THROTTLE_V1_";
+const AUTH_LOGIN_THROTTLE_VERSION = 1;
+const AUTH_LOGIN_MAX_FAILURES = 5;
+const AUTH_LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const AUTH_LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
 
 function securityMaintenanceResponse_() {
   return {
@@ -565,6 +570,260 @@ function revokeSession_(token) {
     properties.deleteProperty(propertyKey);
     return existed;
   });
+}
+
+function constantTimeTextEquals_(leftValue, rightValue) {
+  const leftDigest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(leftValue === null || leftValue === undefined ? "" : leftValue),
+    Utilities.Charset.UTF_8
+  );
+  const rightDigest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(rightValue === null || rightValue === undefined ? "" : rightValue),
+    Utilities.Charset.UTF_8
+  );
+
+  let difference = leftDigest.length ^ rightDigest.length;
+  const length = Math.max(leftDigest.length, rightDigest.length);
+
+  for (let index = 0; index < length; index++) {
+    difference |=
+      (leftDigest[index] || 0) ^ (rightDigest[index] || 0);
+  }
+
+  return difference === 0;
+}
+
+function getLoginThrottlePropertyKey_(username) {
+  const normalizedUsername = String(username || "").trim().toLowerCase();
+  const usernameHash = hashSessionToken_(
+    "login-throttle:" + normalizedUsername
+  );
+  return AUTH_LOGIN_THROTTLE_PROPERTY_PREFIX + usernameHash;
+}
+
+function parseLoginThrottleRecord_(rawValue) {
+  if (!rawValue) return null;
+
+  try {
+    const record = JSON.parse(rawValue);
+    if (
+      !record ||
+      Number(record.version) !== AUTH_LOGIN_THROTTLE_VERSION ||
+      !Number.isFinite(Number(record.failureCount)) ||
+      !Number.isFinite(Number(record.windowStartedAt)) ||
+      !Number.isFinite(Number(record.lockedUntil))
+    ) {
+      return null;
+    }
+
+    return {
+      version: AUTH_LOGIN_THROTTLE_VERSION,
+      failureCount: Math.max(0, Number(record.failureCount)),
+      windowStartedAt: Number(record.windowStartedAt),
+      lockedUntil: Math.max(0, Number(record.lockedUntil))
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+function cleanupLoginThrottleRecordsUnlocked_(properties, nowMs) {
+  const allProperties = properties.getProperties();
+  let deletedCount = 0;
+
+  Object.keys(allProperties).forEach(function(key) {
+    if (!key.startsWith(AUTH_LOGIN_THROTTLE_PROPERTY_PREFIX)) return;
+
+    const record = parseLoginThrottleRecord_(allProperties[key]);
+    const staleAfter =
+      record &&
+      Math.max(
+        record.windowStartedAt + AUTH_LOGIN_WINDOW_MS,
+        record.lockedUntil
+      ) +
+        AUTH_LOGIN_LOCKOUT_MS;
+
+    if (!record || staleAfter <= nowMs) {
+      properties.deleteProperty(key);
+      deletedCount++;
+    }
+  });
+
+  return deletedCount;
+}
+
+function cleanupLoginThrottleRecords_() {
+  return withAuthSessionLock_(function() {
+    const properties = PropertiesService.getScriptProperties();
+    return cleanupLoginThrottleRecordsUnlocked_(properties, Date.now());
+  });
+}
+
+function buildLoginFailureResult_(throttled, retryAfterSeconds) {
+  return {
+    success: false,
+    code: throttled ? "AUTH_LOGIN_THROTTLED" : "AUTH_LOGIN_FAILED",
+    message: throttled
+      ? "เข้าสู่ระบบไม่สำเร็จ กรุณารอสักครู่แล้วลองใหม่"
+      : "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
+    retryAfterSeconds: throttled
+      ? Math.max(1, Number(retryAfterSeconds) || 1)
+      : 0
+  };
+}
+
+function authenticateLoginAttempt_(username, password) {
+  const normalizedUsername = String(username || "").trim().toLowerCase();
+  const submittedPassword = String(
+    password === null || password === undefined ? "" : password
+  ).trim();
+
+  return withAuthSessionLock_(function() {
+    const properties = PropertiesService.getScriptProperties();
+    const nowMs = Date.now();
+    cleanupLoginThrottleRecordsUnlocked_(properties, nowMs);
+
+    const throttleKey = getLoginThrottlePropertyKey_(normalizedUsername);
+    let throttleRecord = parseLoginThrottleRecord_(
+      properties.getProperty(throttleKey)
+    );
+
+    if (throttleRecord && throttleRecord.lockedUntil > nowMs) {
+      return buildLoginFailureResult_(
+        true,
+        Math.ceil((throttleRecord.lockedUntil - nowMs) / 1000)
+      );
+    }
+
+    if (
+      !throttleRecord ||
+      throttleRecord.windowStartedAt + AUTH_LOGIN_WINDOW_MS <= nowMs
+    ) {
+      throttleRecord = {
+        version: AUTH_LOGIN_THROTTLE_VERSION,
+        failureCount: 0,
+        windowStartedAt: nowMs,
+        lockedUntil: 0
+      };
+    }
+
+    const sheet = SpreadsheetApp
+      .getActiveSpreadsheet()
+      .getSheetByName("login");
+    if (!sheet) {
+      throw new Error("User directory is unavailable");
+    }
+
+    const values = sheet.getDataRange().getValues();
+    if (!values.length) {
+      throw new Error("User directory schema is invalid");
+    }
+
+    const headers = values[0].map(function(header) {
+      return String(header || "").trim().toLowerCase();
+    });
+    const idColumn = headers.indexOf("id");
+    const nameColumn = headers.indexOf("name");
+    const usernameColumn = headers.indexOf("username");
+    const passwordColumn = headers.indexOf("password");
+    const roleColumn = headers.indexOf("role");
+
+    if (idColumn === -1 || usernameColumn === -1 || passwordColumn === -1) {
+      throw new Error("User directory schema is invalid");
+    }
+
+    const matches = [];
+    for (let rowIndex = 1; rowIndex < values.length; rowIndex++) {
+      const row = values[rowIndex];
+      const candidateUsername = String(row[usernameColumn] || "")
+        .trim()
+        .toLowerCase();
+      if (candidateUsername !== normalizedUsername) continue;
+
+      matches.push({
+        id: String(row[idColumn] || "").trim(),
+        name: nameColumn === -1
+          ? ""
+          : String(row[nameColumn] || "").trim(),
+        username: String(row[usernameColumn] || "").trim(),
+        password: String(row[passwordColumn] || "").trim(),
+        role: roleColumn === -1
+          ? "user"
+          : String(row[roleColumn] || "user").trim().toLowerCase()
+      });
+    }
+
+    const authenticatedUser =
+      matches.length === 1 &&
+      matches[0].id &&
+      constantTimeTextEquals_(
+        matches[0].password,
+        submittedPassword
+      )
+        ? matches[0]
+        : null;
+
+    if (authenticatedUser) {
+      properties.deleteProperty(throttleKey);
+      delete authenticatedUser.password;
+      return {
+        success: true,
+        user: authenticatedUser
+      };
+    }
+
+    throttleRecord.failureCount++;
+    if (throttleRecord.failureCount >= AUTH_LOGIN_MAX_FAILURES) {
+      throttleRecord.lockedUntil = nowMs + AUTH_LOGIN_LOCKOUT_MS;
+    }
+    properties.setProperty(
+      throttleKey,
+      JSON.stringify(throttleRecord)
+    );
+
+    return buildLoginFailureResult_(
+      throttleRecord.lockedUntil > nowMs,
+      throttleRecord.lockedUntil > nowMs
+        ? Math.ceil((throttleRecord.lockedUntil - nowMs) / 1000)
+        : 0
+    );
+  });
+}
+
+function updateLastLoginAt_(userId) {
+  const normalizedUserId = String(userId || "").trim();
+  if (!normalizedUserId) return;
+
+  try {
+    const sheet = SpreadsheetApp
+      .getActiveSpreadsheet()
+      .getSheetByName("login");
+    if (!sheet) return;
+
+    const values = sheet.getDataRange().getValues();
+    if (values.length < 2) return;
+
+    const headers = values[0].map(function(header) {
+      return String(header || "").trim().toLowerCase();
+    });
+    const idColumn = headers.indexOf("id");
+    const startDatetimeColumn = headers.indexOf("startdatetime");
+    if (idColumn === -1 || startDatetimeColumn === -1) return;
+
+    const matchingRows = [];
+    for (let rowIndex = 1; rowIndex < values.length; rowIndex++) {
+      if (String(values[rowIndex][idColumn] || "").trim() === normalizedUserId) {
+        matchingRows.push(rowIndex + 1);
+      }
+    }
+
+    if (matchingRows.length !== 1) return;
+    sheet.getRange(matchingRows[0], startDatetimeColumn + 1).setValue(new Date());
+  } catch (error) {
+    console.warn("Unable to update last login timestamp");
+  }
 }
 
 function getTelegramConfig_() {
@@ -1560,40 +1819,61 @@ function getLoginHTML() {
 // ✅ ตรวจสอบการเข้าสู่ระบบจากชีต login
 function loginCheck(username, password) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('login');
-    if (!sheet) {
-      return { success: false, message: '❌ ไม่พบชีตชื่อ "login"' };
+    const authentication = authenticateLoginAttempt_(username, password);
+    if (!authentication.success) {
+      return authentication;
     }
 
-    const data = sheet.getDataRange().getValues();
-    data.shift(); // ตัดหัวตารางออก
+    const session = createSession_(authentication.user.id);
+    const loginTime = new Date().toISOString();
+    updateLastLoginAt_(authentication.user.id);
 
-    // 🔍 วนตรวจข้อมูลผู้ใช้ทั้งหมด
-    for (let i = 0; i < data.length; i++) {
-      const [id, name, user, pass, role, startDatetime] = data[i];
-      const cleanPass = String(pass).trim();
-
-      // ถ้าตรงกับ username และ password
-      if (user === username && cleanPass === password) {
-        const now = new Date();
-        sheet.getRange(i + 2, 6).setValue(now); // บันทึกเวลาเข้าใช้
-
-        return {
-          success: true,
-          name,
-          role: role || 'user',
-          loginTime: now.toISOString()
-        };
-      }
-    }
-
-    // ❌ ไม่พบผู้ใช้
-    return { success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' };
-
+    return {
+      success: true,
+      code: "AUTH_LOGIN_SUCCESS",
+      id: session.user.id,
+      username: session.user.username,
+      name: session.user.name,
+      role: session.user.role,
+      loginTime: loginTime,
+      sessionToken: session.token,
+      sessionExpiresAt: session.expiresAt,
+      user: session.user
+    };
   } catch (err) {
-    return { success: false, message: 'เกิดข้อผิดพลาดในระบบ' };
+    return {
+      success: false,
+      code: "AUTH_LOGIN_UNAVAILABLE",
+      message: "ไม่สามารถเข้าสู่ระบบได้ในขณะนี้"
+    };
   }
+}
+
+function getSessionContext(sessionToken) {
+  const validation = validateSession_(sessionToken);
+  if (!validation.valid) {
+    return {
+      success: false,
+      code: validation.code,
+      message: validation.message
+    };
+  }
+
+  return {
+    success: true,
+    code: "AUTH_SESSION_VALID",
+    user: validation.user,
+    session: validation.session
+  };
+}
+
+function logoutSession(sessionToken) {
+  revokeSession_(sessionToken);
+  return {
+    success: true,
+    code: "AUTH_LOGOUT_COMPLETE",
+    message: "ออกจากระบบแล้ว"
+  };
 }
 
 // ✅ ฟังก์ชันสมัครสมาชิกใหม่
