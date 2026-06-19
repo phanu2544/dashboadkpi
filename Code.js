@@ -155,6 +155,9 @@ const AUTH_LOGIN_THROTTLE_VERSION = 1;
 const AUTH_LOGIN_MAX_FAILURES = 5;
 const AUTH_LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
+const AUTH_LOGIN_THROTTLE_MAX_RECORDS = 250;
+const AUTH_LOGIN_UNKNOWN_SUBJECT = "unknown-user";
+const AUTH_LOGIN_DUMMY_PASSWORD = "AUTH_LOGIN_DUMMY_PASSWORD_V1";
 const AUTH_PERMISSIONS = Object.freeze({
   SESSION_SELF: "session:self",
   ADMIN_CONSOLE_VIEW: "admin_console:view",
@@ -178,10 +181,8 @@ const AUTH_ROLE_PERMISSIONS = Object.freeze({
   admin: Object.freeze([
     AUTH_PERMISSIONS.SESSION_SELF,
     AUTH_PERMISSIONS.ADMIN_CONSOLE_VIEW,
-    AUTH_PERMISSIONS.SYSTEM_CONFIG_VIEW,
     AUTH_PERMISSIONS.MONTHLY_CLOSE_VIEW,
-    AUTH_PERMISSIONS.MONTHLY_CLOSE_DRY_RUN,
-    AUTH_PERMISSIONS.SNAPSHOT_VIEW
+    AUTH_PERMISSIONS.MONTHLY_CLOSE_DRY_RUN
   ]),
   superadmin: Object.freeze([
     AUTH_PERMISSIONS.SESSION_SELF,
@@ -700,12 +701,12 @@ function constantTimeTextEquals_(leftValue, rightValue) {
   return difference === 0;
 }
 
-function getLoginThrottlePropertyKey_(username) {
-  const normalizedUsername = String(username || "").trim().toLowerCase();
-  const usernameHash = hashSessionToken_(
-    "login-throttle:" + normalizedUsername
+function getLoginThrottlePropertyKey_(subject) {
+  const normalizedSubject = String(subject || "").trim();
+  const subjectHash = hashSessionToken_(
+    "login-throttle:" + normalizedSubject
   );
-  return AUTH_LOGIN_THROTTLE_PROPERTY_PREFIX + usernameHash;
+  return AUTH_LOGIN_THROTTLE_PROPERTY_PREFIX + subjectHash;
 }
 
 function parseLoginThrottleRecord_(rawValue) {
@@ -759,6 +760,49 @@ function cleanupLoginThrottleRecordsUnlocked_(properties, nowMs) {
   return deletedCount;
 }
 
+function enforceLoginThrottleRecordLimitUnlocked_(
+  properties,
+  protectedKey
+) {
+  const allProperties = properties.getProperties();
+  const records = Object.keys(allProperties)
+    .filter(function(key) {
+      return key.startsWith(AUTH_LOGIN_THROTTLE_PROPERTY_PREFIX);
+    })
+    .map(function(key) {
+      return {
+        key: key,
+        record: parseLoginThrottleRecord_(allProperties[key])
+      };
+    })
+    .filter(function(item) {
+      if (item.record) return true;
+      properties.deleteProperty(item.key);
+      return false;
+    })
+    .sort(function(a, b) {
+      const aActivity = Math.max(
+        a.record.windowStartedAt,
+        a.record.lockedUntil
+      );
+      const bActivity = Math.max(
+        b.record.windowStartedAt,
+        b.record.lockedUntil
+      );
+      return aActivity - bActivity;
+    });
+
+  while (records.length >= AUTH_LOGIN_THROTTLE_MAX_RECORDS) {
+    const removableIndex = records.findIndex(function(item) {
+      return item.key !== protectedKey;
+    });
+    if (removableIndex === -1) break;
+
+    const removed = records.splice(removableIndex, 1)[0];
+    properties.deleteProperty(removed.key);
+  }
+}
+
 function cleanupLoginThrottleRecords_() {
   return withAuthSessionLock_(function() {
     const properties = PropertiesService.getScriptProperties();
@@ -789,30 +833,6 @@ function authenticateLoginAttempt_(username, password) {
     const properties = PropertiesService.getScriptProperties();
     const nowMs = Date.now();
     cleanupLoginThrottleRecordsUnlocked_(properties, nowMs);
-
-    const throttleKey = getLoginThrottlePropertyKey_(normalizedUsername);
-    let throttleRecord = parseLoginThrottleRecord_(
-      properties.getProperty(throttleKey)
-    );
-
-    if (throttleRecord && throttleRecord.lockedUntil > nowMs) {
-      return buildLoginFailureResult_(
-        true,
-        Math.ceil((throttleRecord.lockedUntil - nowMs) / 1000)
-      );
-    }
-
-    if (
-      !throttleRecord ||
-      throttleRecord.windowStartedAt + AUTH_LOGIN_WINDOW_MS <= nowMs
-    ) {
-      throttleRecord = {
-        version: AUTH_LOGIN_THROTTLE_VERSION,
-        failureCount: 0,
-        windowStartedAt: nowMs,
-        lockedUntil: 0
-      };
-    }
 
     const sheet = SpreadsheetApp
       .getActiveSpreadsheet()
@@ -860,14 +880,48 @@ function authenticateLoginAttempt_(username, password) {
       });
     }
 
-    const authenticatedUser =
-      matches.length === 1 &&
-      matches[0].id &&
+    const uniqueUser = matches.length === 1 && matches[0].id
+      ? matches[0]
+      : null;
+    const throttleSubject = uniqueUser
+      ? "user-id:" + uniqueUser.id
+      : AUTH_LOGIN_UNKNOWN_SUBJECT;
+    const throttleKey = getLoginThrottlePropertyKey_(throttleSubject);
+    let throttleRecord = parseLoginThrottleRecord_(
+      properties.getProperty(throttleKey)
+    );
+    enforceLoginThrottleRecordLimitUnlocked_(properties, throttleKey);
+
+    if (throttleRecord && throttleRecord.lockedUntil > nowMs) {
       constantTimeTextEquals_(
-        matches[0].password,
+        uniqueUser ? uniqueUser.password : AUTH_LOGIN_DUMMY_PASSWORD,
         submittedPassword
-      )
-        ? matches[0]
+      );
+      return buildLoginFailureResult_(
+        true,
+        Math.ceil((throttleRecord.lockedUntil - nowMs) / 1000)
+      );
+    }
+
+    if (
+      !throttleRecord ||
+      throttleRecord.windowStartedAt + AUTH_LOGIN_WINDOW_MS <= nowMs
+    ) {
+      throttleRecord = {
+        version: AUTH_LOGIN_THROTTLE_VERSION,
+        failureCount: 0,
+        windowStartedAt: nowMs,
+        lockedUntil: 0
+      };
+    }
+
+    const passwordMatches = constantTimeTextEquals_(
+      uniqueUser ? uniqueUser.password : AUTH_LOGIN_DUMMY_PASSWORD,
+      submittedPassword
+    );
+    const authenticatedUser =
+      uniqueUser && passwordMatches
+        ? uniqueUser
         : null;
 
     if (authenticatedUser) {
