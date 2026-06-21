@@ -158,6 +158,18 @@ const AUTH_LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
 const AUTH_LOGIN_THROTTLE_MAX_RECORDS = 250;
 const AUTH_LOGIN_UNKNOWN_SUBJECT = "unknown-user";
 const AUTH_LOGIN_DUMMY_PASSWORD = "AUTH_LOGIN_DUMMY_PASSWORD_V1";
+const AUTH_USER_SCOPE_SHEET_NAME = "UserScope";
+const AUTH_TASK_ASSIGNEE_USER_ID_FIELD = "AssigneeUserId";
+const AUTH_TASK_ACTIONS = Object.freeze({
+  READ: "read",
+  MONTHLY_INPUT: "monthly_input",
+  SUBMIT: "submit",
+  CANCEL_SUBMISSION: "cancel_submission",
+  CREATE: "create",
+  UPDATE_METADATA: "update_metadata",
+  ASSIGN: "assign",
+  DELETE: "delete"
+});
 const AUTH_PERMISSIONS = Object.freeze({
   SESSION_SELF: "session:self",
   ADMIN_CONSOLE_VIEW: "admin_console:view",
@@ -176,13 +188,18 @@ const AUTH_PERMISSIONS = Object.freeze({
 });
 const AUTH_ROLE_PERMISSIONS = Object.freeze({
   user: Object.freeze([
-    AUTH_PERMISSIONS.SESSION_SELF
+    AUTH_PERMISSIONS.SESSION_SELF,
+    AUTH_PERMISSIONS.TASK_READ,
+    AUTH_PERMISSIONS.TASK_MUTATE
   ]),
   admin: Object.freeze([
     AUTH_PERMISSIONS.SESSION_SELF,
     AUTH_PERMISSIONS.ADMIN_CONSOLE_VIEW,
     AUTH_PERMISSIONS.MONTHLY_CLOSE_VIEW,
-    AUTH_PERMISSIONS.MONTHLY_CLOSE_DRY_RUN
+    AUTH_PERMISSIONS.MONTHLY_CLOSE_DRY_RUN,
+    AUTH_PERMISSIONS.TASK_READ,
+    AUTH_PERMISSIONS.TASK_MUTATE,
+    AUTH_PERMISSIONS.EXPORT_SUMMARY
   ]),
   superadmin: Object.freeze([
     AUTH_PERMISSIONS.SESSION_SELF,
@@ -194,7 +211,11 @@ const AUTH_ROLE_PERMISSIONS = Object.freeze({
     AUTH_PERMISSIONS.MONTHLY_CLOSE_DRY_RUN,
     AUTH_PERMISSIONS.MONTHLY_CLOSE_EXECUTE,
     AUTH_PERMISSIONS.SNAPSHOT_VIEW,
-    AUTH_PERMISSIONS.SNAPSHOT_MANAGE
+    AUTH_PERMISSIONS.SNAPSHOT_MANAGE,
+    AUTH_PERMISSIONS.TASK_READ,
+    AUTH_PERMISSIONS.TASK_MUTATE,
+    AUTH_PERMISSIONS.EXPORT_SUMMARY,
+    AUTH_PERMISSIONS.EXPORT_RAW
   ])
 });
 
@@ -654,6 +675,290 @@ function requirePermission_(sessionToken, permission) {
     actor: actor,
     permission: normalizedPermission,
     session: validation.session
+  };
+}
+
+function normalizeAuthorizationText_(value) {
+  return String(value === null || value === undefined ? "" : value)
+    .trim()
+    .toLowerCase();
+}
+
+function isActiveUserScopeValue_(value) {
+  if (value === true || value === 1) return true;
+
+  return ["true", "1", "yes", "active"].indexOf(
+    normalizeAuthorizationText_(value)
+  ) !== -1;
+}
+
+function getAuthorizationFieldValue_(source, fieldNames) {
+  const record = source && typeof source === "object" ? source : {};
+  const names = Array.isArray(fieldNames) ? fieldNames : [fieldNames];
+
+  for (let index = 0; index < names.length; index++) {
+    const name = names[index];
+    if (Object.prototype.hasOwnProperty.call(record, name)) {
+      return record[name];
+    }
+  }
+
+  return "";
+}
+
+function normalizeTaskAuthorizationRecord_(task) {
+  return {
+    id: String(
+      getAuthorizationFieldValue_(task, ["ID", "id", "taskId"]) || ""
+    ).trim(),
+    department: normalizeAuthorizationText_(
+      getAuthorizationFieldValue_(task, ["Department", "department"])
+    ),
+    workGroup: normalizeAuthorizationText_(
+      getAuthorizationFieldValue_(task, [
+        "WorkGroup",
+        "workGroup",
+        "workgroup"
+      ])
+    ),
+    subDep: normalizeAuthorizationText_(
+      getAuthorizationFieldValue_(task, ["SubDep", "subDep", "subdep"])
+    ),
+    assigneeUserId: String(
+      getAuthorizationFieldValue_(task, [
+        AUTH_TASK_ASSIGNEE_USER_ID_FIELD,
+        "assigneeUserId",
+        "assigneeuserid"
+      ]) || ""
+    ).trim()
+  };
+}
+
+function getUserScopeRecords_() {
+  const sheet = SpreadsheetApp
+    .getActiveSpreadsheet()
+    .getSheetByName(AUTH_USER_SCOPE_SHEET_NAME);
+
+  if (!sheet) return [];
+
+  const values = sheet.getDataRange().getValues();
+  if (!values || values.length < 2) return [];
+
+  const headers = values[0].map(function(header) {
+    return normalizeAuthorizationText_(header);
+  });
+  const userIdColumn = headers.indexOf("userid");
+  const departmentColumn = headers.indexOf("department");
+  const workGroupColumn = headers.indexOf("workgroup");
+  const subDepColumn = headers.indexOf("subdep");
+  const activeColumn = headers.indexOf("active");
+  const requiredHeaders = [
+    "userid",
+    "department",
+    "workgroup",
+    "subdep",
+    "active"
+  ];
+  const hasExactlyOneOfEachRequiredHeader = requiredHeaders.every(
+    function(requiredHeader) {
+      return headers.filter(function(header) {
+        return header === requiredHeader;
+      }).length === 1;
+    }
+  );
+
+  if (!hasExactlyOneOfEachRequiredHeader) {
+    const schemaError = new Error("Authorization scope schema is invalid");
+    schemaError.name = "AUTH_SCOPE_SCHEMA_INVALID";
+    throw schemaError;
+  }
+
+  return values.slice(1).reduce(function(records, row) {
+    const userId = String(row[userIdColumn] || "").trim();
+    const department = normalizeAuthorizationText_(row[departmentColumn]);
+    if (
+      !userId ||
+      !department ||
+      !isActiveUserScopeValue_(row[activeColumn])
+    ) {
+      return records;
+    }
+
+    records.push({
+      userId: userId,
+      department: department,
+      workGroup: normalizeAuthorizationText_(row[workGroupColumn]),
+      subDep: normalizeAuthorizationText_(row[subDepColumn])
+    });
+    return records;
+  }, []);
+}
+
+function getActorScopes_(actor) {
+  const normalizedActor = actor && typeof actor === "object" ? actor : {};
+  const actorId = String(normalizedActor.id || "").trim();
+  const role = normalizeAuthRole_(normalizedActor.role);
+
+  if (!actorId || ["user", "admin", "superadmin"].indexOf(role) === -1) {
+    return [];
+  }
+  if (role === "superadmin") return [];
+
+  return getUserScopeRecords_().filter(function(scope) {
+    return scope.userId === actorId;
+  });
+}
+
+function taskMatchesActorScope_(task, scope) {
+  const normalizedTask = normalizeTaskAuthorizationRecord_(task);
+  const normalizedScope = scope && typeof scope === "object" ? scope : {};
+  const scopeDepartment = normalizeAuthorizationText_(
+    normalizedScope.department
+  );
+  const scopeWorkGroup = normalizeAuthorizationText_(normalizedScope.workGroup);
+  const scopeSubDep = normalizeAuthorizationText_(normalizedScope.subDep);
+
+  if (
+    !scopeDepartment ||
+    normalizedTask.department !== scopeDepartment
+  ) {
+    return false;
+  }
+  if (
+    scopeWorkGroup &&
+    normalizedTask.workGroup !== scopeWorkGroup
+  ) {
+    return false;
+  }
+  if (scopeSubDep && normalizedTask.subDep !== scopeSubDep) {
+    return false;
+  }
+
+  return true;
+}
+
+function actorHasTaskScope_(actor, task, scopes) {
+  const role = normalizeAuthRole_(actor && actor.role);
+  if (role === "superadmin") return true;
+  if (role !== "user" && role !== "admin") return false;
+
+  const actorScopes = Array.isArray(scopes) ? scopes : [];
+  return actorScopes.some(function(scope) {
+    return taskMatchesActorScope_(task, scope);
+  });
+}
+
+function canReadTask_(actor, task, scopes) {
+  if (!normalizeTaskAuthorizationRecord_(task).id) return false;
+  return actorHasTaskScope_(actor, task, scopes);
+}
+
+function canMutateTask_(actor, task, action, scopes) {
+  const role = normalizeAuthRole_(actor && actor.role);
+  const normalizedAction = normalizeAuthorizationText_(action);
+  const normalizedTask = normalizeTaskAuthorizationRecord_(task);
+  const knownActions = Object.keys(AUTH_TASK_ACTIONS).map(function(key) {
+    return AUTH_TASK_ACTIONS[key];
+  });
+
+  if (knownActions.indexOf(normalizedAction) === -1) return false;
+  if (normalizedAction === AUTH_TASK_ACTIONS.READ) return false;
+  if (
+    normalizedAction !== AUTH_TASK_ACTIONS.CREATE &&
+    !normalizedTask.id
+  ) {
+    return false;
+  }
+  if (role === "superadmin") return true;
+  if (!actorHasTaskScope_(actor, task, scopes)) return false;
+
+  if (role === "admin") {
+    return normalizedAction !== AUTH_TASK_ACTIONS.DELETE;
+  }
+  if (role !== "user") return false;
+
+  const actorId = String(actor && actor.id || "").trim();
+  if (!actorId || normalizedTask.assigneeUserId !== actorId) return false;
+
+  return [
+    AUTH_TASK_ACTIONS.MONTHLY_INPUT,
+    AUTH_TASK_ACTIONS.SUBMIT,
+    AUTH_TASK_ACTIONS.CANCEL_SUBMISSION
+  ].indexOf(normalizedAction) !== -1;
+}
+
+function filterTasksForActor_(actor, tasks, scopes) {
+  const list = Array.isArray(tasks) ? tasks : [];
+  return list.filter(function(task) {
+    return canReadTask_(actor, task, scopes);
+  });
+}
+
+function requireTaskAccess_(sessionToken, task, action) {
+  const normalizedAction = normalizeAuthorizationText_(action);
+  const permission = normalizedAction === AUTH_TASK_ACTIONS.READ
+    ? AUTH_PERMISSIONS.TASK_READ
+    : AUTH_PERMISSIONS.TASK_MUTATE;
+  const authorization = requirePermission_(sessionToken, permission);
+  const scopes = getActorScopes_(authorization.actor);
+  const allowed = normalizedAction === AUTH_TASK_ACTIONS.READ
+    ? canReadTask_(authorization.actor, task, scopes)
+    : canMutateTask_(
+      authorization.actor,
+      task,
+      normalizedAction,
+      scopes
+    );
+
+  if (!allowed) {
+    const resourceError = new Error("Access denied");
+    resourceError.name = "AUTH_RESOURCE_FORBIDDEN";
+    throw resourceError;
+  }
+
+  return {
+    actor: authorization.actor,
+    action: normalizedAction,
+    permission: permission,
+    scopes: scopes
+  };
+}
+
+function requireExportPermission_(sessionToken, exportMode) {
+  const normalizedMode = normalizeAuthorizationText_(exportMode);
+  let authorization;
+
+  if (normalizedMode === "summary") {
+    authorization = requirePermission_(
+      sessionToken,
+      AUTH_PERMISSIONS.EXPORT_SUMMARY
+    );
+  } else if (normalizedMode === "raw") {
+    authorization = requirePermission_(
+      sessionToken,
+      AUTH_PERMISSIONS.EXPORT_RAW
+    );
+  } else {
+    const exportModeError = new Error("Access denied");
+    exportModeError.name = "AUTH_EXPORT_MODE_INVALID";
+    throw exportModeError;
+  }
+
+  const scopes = getActorScopes_(authorization.actor);
+  if (
+    authorization.actor.role !== "superadmin" &&
+    scopes.length === 0
+  ) {
+    const exportScopeError = new Error("Access denied");
+    exportScopeError.name = "AUTH_RESOURCE_FORBIDDEN";
+    throw exportScopeError;
+  }
+
+  return {
+    actor: authorization.actor,
+    exportMode: normalizedMode,
+    permission: authorization.permission,
+    scopes: scopes
   };
 }
 

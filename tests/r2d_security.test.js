@@ -336,6 +336,29 @@ test("permission matrix is default deny and least privilege", () => {
     ).code,
     "AUTH_FORBIDDEN"
   );
+  assert.equal(
+    api.requirePermission_(
+      user.sessionToken,
+      api.AUTH_PERMISSIONS.TASK_READ
+    ).actor.role,
+    "user"
+  );
+  assert.equal(
+    api.requirePermission_(
+      user.sessionToken,
+      api.AUTH_PERMISSIONS.TASK_MUTATE
+    ).actor.role,
+    "user"
+  );
+  assert.equal(
+    captureError(() =>
+      api.requirePermission_(
+        user.sessionToken,
+        api.AUTH_PERMISSIONS.EXPORT_SUMMARY
+      )
+    ).code,
+    "AUTH_FORBIDDEN"
+  );
 
   assert.equal(
     api.requirePermission_(
@@ -349,7 +372,6 @@ test("permission matrix is default deny and least privilege", () => {
     api.AUTH_PERMISSIONS.SYSTEM_CONFIG_VIEW,
     api.AUTH_PERMISSIONS.SNAPSHOT_VIEW,
     api.AUTH_PERMISSIONS.MONTHLY_CLOSE_EXECUTE,
-    api.AUTH_PERMISSIONS.TASK_MUTATE,
     api.AUTH_PERMISSIONS.EXPORT_RAW
   ]) {
     assert.equal(
@@ -357,6 +379,16 @@ test("permission matrix is default deny and least privilege", () => {
         api.requirePermission_(admin.sessionToken, permission)
       ).code,
       "AUTH_FORBIDDEN"
+    );
+  }
+  for (const permission of [
+    api.AUTH_PERMISSIONS.TASK_READ,
+    api.AUTH_PERMISSIONS.TASK_MUTATE,
+    api.AUTH_PERMISSIONS.EXPORT_SUMMARY
+  ]) {
+    assert.equal(
+      api.requirePermission_(admin.sessionToken, permission).actor.role,
+      "admin"
     );
   }
 
@@ -376,15 +408,14 @@ test("permission matrix is default deny and least privilege", () => {
   );
 
   for (const permission of [
+    api.AUTH_PERMISSIONS.TASK_READ,
     api.AUTH_PERMISSIONS.TASK_MUTATE,
     api.AUTH_PERMISSIONS.EXPORT_SUMMARY,
     api.AUTH_PERMISSIONS.EXPORT_RAW
   ]) {
     assert.equal(
-      captureError(() =>
-        api.requirePermission_(superadmin.sessionToken, permission)
-      ).code,
-      "AUTH_FORBIDDEN"
+      api.requirePermission_(superadmin.sessionToken, permission).actor.role,
+      "superadmin"
     );
   }
 
